@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
-using ArcGIS.Desktop.Mapping;
 using ArcGIS.Core.Geometry;
 using ProMsgBox = ArcGIS.Desktop.Framework.Dialogs.MessageBox;
-using PRZC = NCC.PRZTools.PRZConstants;
 using PRZH = NCC.PRZTools.PRZHelper;
 
 namespace NCC.PRZTools

@@ -1,38 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Threading;
-using ArcGIS.Core.CIM;
-using ArcGIS.Core.Data;
-using ArcGIS.Core.Data.Raster;
-using ArcGIS.Core.Geometry;
-using ArcGIS.Desktop.Core;
-using ArcGIS.Desktop.Core.Geoprocessing;
-using ArcGIS.Desktop.Editing;
-using ArcGIS.Desktop.Framework;
 using ArcGIS.Desktop.Framework.Contracts;
-using ArcGIS.Desktop.Framework.Threading.Tasks;
-using ArcGIS.Desktop.Layouts;
-using ArcGIS.Desktop.Mapping;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Input;
-using ProMsgBox = ArcGIS.Desktop.Framework.Dialogs.MessageBox;
-using PRZC = NCC.PRZTools.PRZConstants;
-using PRZH = NCC.PRZTools.PRZHelper;
 
 namespace NCC.PRZTools
 {

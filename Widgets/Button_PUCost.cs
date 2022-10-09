@@ -5,7 +5,6 @@ using ArcGIS.Desktop.Framework.Contracts;
 using ArcGIS.Desktop.Mapping;
 using System;
 using System.Reflection;
-using System.Threading.Tasks;
 using ProMsgBox = ArcGIS.Desktop.Framework.Dialogs.MessageBox;
 using PRZH = NCC.PRZTools.PRZHelper;
 using PRZC = NCC.PRZTools.PRZConstants;

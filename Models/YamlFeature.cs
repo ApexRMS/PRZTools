@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using PRZC = NCC.PRZTools.PRZConstants;
-
-namespace NCC.PRZTools
+﻿namespace NCC.PRZTools
 {
     public class YamlFeature
     {

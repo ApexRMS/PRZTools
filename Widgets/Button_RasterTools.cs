@@ -1,7 +1,5 @@
-﻿using ArcGIS.Core.CIM;
-using ArcGIS.Desktop.Framework;
+﻿using ArcGIS.Desktop.Framework;
 using ArcGIS.Desktop.Framework.Contracts;
-using ArcGIS.Desktop.Mapping;
 using System;
 using System.Reflection;
 using ProMsgBox = ArcGIS.Desktop.Framework.Dialogs.MessageBox;
