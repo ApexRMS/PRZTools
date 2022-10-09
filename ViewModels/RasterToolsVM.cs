@@ -664,7 +664,7 @@ namespace NCC.PRZTools
                 }
 
                 // Configure the Browse Filter
-                BrowseProjectFilter bf = BrowseProjectFilter.GetFilter(ItemFilters.rasters);
+                BrowseProjectFilter bf = BrowseProjectFilter.GetFilter(ItemFilters.Rasters);
 
                 SaveItemDialog dlg = new SaveItemDialog
                 {

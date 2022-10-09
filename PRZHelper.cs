@@ -3367,7 +3367,7 @@ namespace NCC.PRZTools
                     using (Table table = tryget.table)
                     {
                         // Row Count
-                        int rows = table.GetCount(queryFilter);
+                        long rows = table.GetCount(queryFilter);
 
                         if (rows == 1)
                         {
@@ -3484,7 +3484,7 @@ namespace NCC.PRZTools
                     using (Table table = tryget.table)
                     {
                         // Row Count
-                        int rows = table.GetCount(queryFilter);
+                        long rows = table.GetCount(queryFilter);
 
                         if (rows == 1)
                         {
@@ -5790,7 +5790,12 @@ namespace NCC.PRZTools
                     {
                         string fc_path = GetPath_Project(PRZC.c_FC_STUDY_AREA_MAIN).path;
                         Uri uri = new Uri(fc_path);
-                        FeatureLayer featureLayer = LayerFactory.Instance.CreateFeatureLayer(uri, GL_MAIN, 0, PRZC.c_LAYER_STUDY_AREA);
+                        var layerParams = new FeatureLayerCreationParams(uri) // TODO: Check these are assigned correctly with Laurence
+                        {
+                            MapMemberIndex = 0,
+                            Name = PRZC.c_LAYER_STUDY_AREA
+                        };
+                        FeatureLayer featureLayer = LayerFactory.Instance.CreateLayer<FeatureLayer>(layerParams, GL_MAIN);
                         ApplyLegend_SA_Simple(featureLayer);
                         featureLayer.SetVisibility(true);
                     }
@@ -5800,7 +5805,12 @@ namespace NCC.PRZTools
                     {
                         string fc_path = GetPath_Project(PRZC.c_FC_STUDY_AREA_MAIN_BUFFERED).path;
                         Uri uri = new Uri(fc_path);
-                        FeatureLayer featureLayer = LayerFactory.Instance.CreateFeatureLayer(uri, GL_MAIN, 1, PRZC.c_LAYER_STUDY_AREA_BUFFER);
+                        var layerParams = new FeatureLayerCreationParams(uri) // TODO: Check these are assigned correctly with Laurence
+                        {
+                            MapMemberIndex = 1,
+                            Name = PRZC.c_LAYER_STUDY_AREA_BUFFER
+                        };
+                        FeatureLayer featureLayer = LayerFactory.Instance.CreateLayer<FeatureLayer>(layerParams, GL_MAIN);
                         ApplyLegend_SAB_Simple(featureLayer);
                         featureLayer.SetVisibility(true);
                     }
@@ -5810,7 +5820,12 @@ namespace NCC.PRZTools
                     {
                         string fc_path = GetPath_Project(PRZC.c_FC_PLANNING_UNITS).path;
                         Uri uri = new Uri(fc_path);
-                        FeatureLayer featureLayer = LayerFactory.Instance.CreateFeatureLayer(uri, GL_MAIN, 2, PRZC.c_LAYER_PLANNING_UNITS_FC);
+                        var layerParams = new FeatureLayerCreationParams(uri) // TODO: Check these are assigned correctly with Laurence
+                        {
+                            MapMemberIndex = 2,
+                            Name = PRZC.c_LAYER_PLANNING_UNITS_FC
+                        };
+                        FeatureLayer featureLayer = LayerFactory.Instance.CreateLayer<FeatureLayer>(layerParams, GL_MAIN);
                         await ApplyLegend_PU_Basic(featureLayer);
                         featureLayer.SetVisibility(true);
                     }
@@ -5833,7 +5848,12 @@ namespace NCC.PRZTools
                     {
                         string ras_path = GetPath_Project(PRZC.c_RAS_PLANNING_UNITS).path;
                         Uri uri = new Uri(ras_path);
-                        RasterLayer rasterLayer = (RasterLayer)LayerFactory.Instance.CreateRasterLayer(uri, GL_MAIN, 5, PRZC.c_LAYER_PLANNING_UNITS_RAS);
+                        var layerParams = new RasterLayerCreationParams(uri) // TODO: Check these are assigned correctly with Laurence
+                        {
+                            MapMemberIndex = 5,
+                            Name = PRZC.c_LAYER_PLANNING_UNITS_RAS
+                        };
+                        RasterLayer rasterLayer = LayerFactory.Instance.CreateLayer<RasterLayer>(layerParams, GL_MAIN);
                         await ApplyLegend_PU_Basic(rasterLayer);
                         rasterLayer.SetVisibility(true);
                     }
@@ -5852,7 +5872,11 @@ namespace NCC.PRZTools
                             {
                                 string fc_path = GetPath_Project(fc_name, PRZC.c_FDS_NATIONAL_ELEMENTS).path;
                                 Uri uri = new Uri(fc_path);
-                                FeatureLayer featureLayer = LayerFactory.Instance.CreateFeatureLayer(uri, GL_NAT, LayerPosition.AddToBottom);
+                                var layerParams = new FeatureLayerCreationParams(uri)
+                                {
+                                    MapMemberPosition = MapMemberPosition.AddToBottom
+                                };
+                                FeatureLayer featureLayer = LayerFactory.Instance.CreateLayer<FeatureLayer>(layerParams, GL_NAT);
                                 await ApplyLegend_ElementFC_Basic(featureLayer, DataSource.National);
                                 featureLayer.SetVisibility(false);
                                 featureLayer.SetExpanded(false);
@@ -5912,7 +5936,11 @@ namespace NCC.PRZTools
                             {
                                 string fc_path = GetPath_Project(fc_name, PRZC.c_FDS_REGIONAL_ELEMENTS).path;
                                 Uri uri = new Uri(fc_path);
-                                FeatureLayer featureLayer = LayerFactory.Instance.CreateFeatureLayer(uri, GL_REG, LayerPosition.AddToBottom);
+                                var layerParams = new FeatureLayerCreationParams(uri)
+                                {
+                                    MapMemberPosition = MapMemberPosition.AddToBottom
+                                };
+                                FeatureLayer featureLayer = LayerFactory.Instance.CreateLayer<FeatureLayer>(layerParams, GL_REG);
                                 await ApplyLegend_ElementFC_Basic(featureLayer, DataSource.Regional);
                                 featureLayer.SetVisibility(false);
                                 featureLayer.SetExpanded(false);

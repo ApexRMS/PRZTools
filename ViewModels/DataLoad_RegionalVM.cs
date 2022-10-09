@@ -842,13 +842,14 @@ namespace NCC.PRZTools
                 LayerCreationParams creationParams = new LayerCreationParams(uri)
                 {
                     Name = "pu",
-                    IsVisible = false
+                    IsVisible = false,
+                    MapMemberPosition = MapMemberPosition.AddToBottom
                 };
 
                 Layer pu_layer = null;
                 await QueuedTask.Run(() =>
                 {
-                    pu_layer = LayerFactory.Instance.CreateLayer<RasterLayer>(creationParams, GL, LayerPosition.AddToBottom);
+                    pu_layer = LayerFactory.Instance.CreateLayer<RasterLayer>(creationParams, GL);
                 });
                 RasterLayer pu_rl = (RasterLayer)pu_layer;
 
@@ -951,10 +952,10 @@ namespace NCC.PRZTools
                             // Create and add the layer
                             LayerCreationParams lcparams = new LayerCreationParams(a)
                             {
-                                IsVisible = false
+                                IsVisible = false,
+                                MapMemberPosition = MapMemberPosition.AddToTop
                             };
-
-                            var l = LayerFactory.Instance.CreateLayer<FeatureLayer>(lcparams, GL, LayerPosition.AddToTop);
+                            var l = LayerFactory.Instance.CreateLayer<FeatureLayer>(lcparams, GL);
 
                             // Check for valid source Feature Class
                             bool bad_fc = false;
@@ -1021,10 +1022,11 @@ namespace NCC.PRZTools
                             // Create and add the layer
                             LayerCreationParams lcparams = new LayerCreationParams(a)
                             {
-                                IsVisible = false
+                                IsVisible = false,
+                                MapMemberPosition = MapMemberPosition.AddToTop
                             };
 
-                            var l = LayerFactory.Instance.CreateLayer<RasterLayer>(lcparams, GL, LayerPosition.AddToTop);
+                            var l = LayerFactory.Instance.CreateLayer<RasterLayer>(lcparams, GL);
 
                             // Check for a valid Raster source
                             bool bad_raster = false;

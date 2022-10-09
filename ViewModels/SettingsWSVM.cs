@@ -253,7 +253,7 @@ namespace NCC.PRZTools
                     InitialLocation = initDir,
                     MultiSelect = false,
                     AlwaysUseInitialLocation = true,
-                    Filter = ItemFilters.folders
+                    Filter = ItemFilters.Folders
                 };
 
                 bool? result = dlg.ShowDialog();
@@ -301,7 +301,7 @@ namespace NCC.PRZTools
                     InitialLocation = initDir,
                     MultiSelect = false,
                     AlwaysUseInitialLocation = true,
-                    Filter = ItemFilters.folders
+                    Filter = ItemFilters.Folders
                 };
 
                 bool? result = dlg.ShowDialog();

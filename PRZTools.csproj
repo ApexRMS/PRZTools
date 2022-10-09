@@ -1,266 +1,248 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{DA31F65D-D421-4389-8904-1EBF0789E957}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <NoWarn>CA1416</NoWarn>
+    <UseWPF>true</UseWPF>
     <RootNamespace>NCC.PRZTools</RootNamespace>
-    <AssemblyName>PRZTools</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <StartAction>Program</StartAction>
-    <StartProgram>C:\Program Files\ArcGIS\Pro\bin\ArcGISPro.exe</StartProgram>
-    <PlatformTarget>x64</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <StartAction>Program</StartAction>
-    <StartProgram>C:\Program Files\ArcGIS\Pro\bin\ArcGISPro.exe</StartProgram>
-    <PlatformTarget>x64</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ArcGISFolder>$([MSBuild]::GetRegistryValueFromView('HKEY_LOCAL_MACHINE\SOFTWARE\ESRI\ArcGISPro', 'InstallDir', null, RegistryView.Registry64))</ArcGISFolder>
-    <ArcGISFolder Condition="'$(ArcGISFolder)' == ''">$(registry:HKEY_CURRENT_USER\SOFTWARE\ESRI\ArcGISPro@InstallDir)</ArcGISFolder>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CsvHelper, Version=27.0.0.0, Culture=neutral, PublicKeyToken=8c4959082be5c823, processorArchitecture=MSIL">
-      <HintPath>packages\CsvHelper.27.1.1\lib\net47\CsvHelper.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=5.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>packages\Microsoft.Bcl.AsyncInterfaces.5.0.0\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Bcl.HashCode, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>packages\Microsoft.Bcl.HashCode.1.1.1\lib\net461\Microsoft.Bcl.HashCode.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.IO.Compression" />
-    <Reference Include="System.IO.Compression.FileSystem" />
-    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-    <Reference Include="WindowsBase" />
-    <Reference Include="System.Xaml" />
     <Reference Include="ArcGIS.Desktop.Framework">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Desktop.Framework.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Core">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Core.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Core">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\Core\ArcGIS.Desktop.Core.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Mapping">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\Mapping\ArcGIS.Desktop.Mapping.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Catalog">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\Catalog\ArcGIS.Desktop.Catalog.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Editing">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\Editing\ArcGIS.Desktop.Editing.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Extensions">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\DesktopExtensions\ArcGIS.Desktop.Extensions.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.GeoProcessing">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\GeoProcessing\ArcGIS.Desktop.GeoProcessing.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Layouts">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\Extensions\Layout\ArcGIS.Desktop.Layouts.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Shared.Wpf">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Desktop.Shared.Wpf.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Ribbon.Wpf">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Desktop.Ribbon.Wpf.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.DataGrid.Contrib.Wpf">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Desktop.DataGrid.Contrib.Wpf.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Resources">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Desktop.Resources.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ArcGIS.Desktop.Resources">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\ArcGIS.Desktop.Resources.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
     <Reference Include="ESRI.ArcGIS.ItemIndex">
       <HintPath>C:\Program Files\ArcGIS\Pro\bin\ESRI.ArcGIS.ItemIndex.dll</HintPath>
+      <CopyLocal>False</CopyLocal>
       <Private>False</Private>
     </Reference>
-    <Reference Include="YamlDotNet, Version=11.0.0.0, Culture=neutral, PublicKeyToken=ec19458f3c15af5e, processorArchitecture=MSIL">
-      <HintPath>packages\YamlDotNet.11.2.1\lib\net45\YamlDotNet.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <AddInContent Include="Config.daml" />
+    <Content Include="Config.daml" />
+    <Content Include="DarkImages\PRZTools16.png" />
+    <Content Include="DarkImages\PRZTools32.png" />
+    <Content Include="Images\PRZTools16.png" />
+    <Content Include="Images\PRZTools32.png" />
+    <Content Include="Images\WorkspaceSettings16.png" />
+    <Content Include="Images\WorkspaceSettings32.png" />
+    <Content Include="DarkImages\WorkspaceSettings16.png" />
+    <Content Include="DarkImages\WorkspaceSettings32.png" />
+    <Content Include="DarkImages\LoadPRZLayers32.png" />
+    <Content Include="Images\LoadPRZLayers32.png" />
+    <Content Include="Images\LoadPRZLayers16.png" />
+    <Content Include="DarkImages\LoadPRZLayers16.png" />
+    <Content Include="Images\BoundaryLengths32.png" />
+    <Content Include="DarkImages\BoundaryLengths32.png" />
+    <Content Include="DarkImages\BoundaryLengths16.png" />
+    <Content Include="Images\BoundaryLengths16.png" />
+    <Content Include="DarkImages\PUCost16.png" />
+    <Content Include="DarkImages\PUCost32.png" />
+    <Content Include="Images\PUCost16.png" />
+    <Content Include="Images\PUCost32.png" />
+    <Content Include="DarkImages\PUStatus16.png" />
+    <Content Include="DarkImages\PUStatus32.png" />
+    <Content Include="Images\PUStatus16.png" />
+    <Content Include="Images\PUStatus32.png" />
+    <Content Include="DarkImages\ConservationFeatures16.png" />
+    <Content Include="DarkImages\ConservationFeatures32.png" />
+    <Content Include="Images\ConservationFeatures16.png" />
+    <Content Include="Images\ConservationFeatures32.png" />
+    <Content Include="DarkImages\CoordinateSystem16.png" />
+    <Content Include="DarkImages\CoordinateSystem32.png" />
+    <Content Include="Images\CoordinateSystem16.png" />
+    <Content Include="Images\CoordinateSystem32.png" />
+    <Content Include="Images\PlanningUnits16.png" />
+    <Content Include="Images\PlanningUnits32.png" />
+    <Content Include="DarkImages\PlanningUnit16.png" />
+    <Content Include="DarkImages\PlanningUnit32.png" />
+    <Content Include="DarkImages\CalculateStatus16.png" />
+    <Content Include="DarkImages\CalculateStatus32.png" />
+    <Content Include="Images\CalculateStatus16.png" />
+    <Content Include="Images\CalculateStatus32.png" />
+    <Content Include="DarkImages\Legend16.png" />
+    <Content Include="DarkImages\Legend32.png" />
+    <Content Include="Images\Legend16.png" />
+    <Content Include="Images\Legend32.png" />
+    <Content Include="Images\Table16.png" />
+    <Content Include="Images\Table32.png" />
+    <Content Include="DarkImages\Table16.png" />
+    <Content Include="DarkImages\Table32.png" />
+    <Content Include="Images\TableDelete16.png" />
+    <Content Include="Images\TableDelete32.png" />
+    <Content Include="DarkImages\TableDelete16.png" />
+    <Content Include="DarkImages\TableDelete32.png" />
+    <Content Include="Images\ExportToWTW16.png" />
+    <Content Include="Images\ExportToWTW32.png" />
+    <Content Include="DarkImages\ExportToWTW16.png" />
+    <Content Include="DarkImages\ExportToWTW32.png" />
+    <Content Include="Images\Settings_WTW16.png" />
+    <Content Include="Images\Settings_WTW32.png" />
+    <Content Include="DarkImages\Settings_WTW16.png" />
+    <Content Include="DarkImages\Settings_WTW32.png" />
+    <Content Include="DarkImages\Settings16.png" />
+    <Content Include="DarkImages\Settings32.png" />
+    <Content Include="Images\Settings16.png" />
+    <Content Include="Images\Settings32.png" />
+    <Content Include="DarkImages\RasterToolbox16.png" />
+    <Content Include="DarkImages\RasterToolsA32.png" />
+    <Content Include="DarkImages\RasterToolsB32.png" />
+    <Content Include="DarkImages\RasterToolsC32.png" />
+    <Content Include="Images\RasterToolbox16.png" />
+    <Content Include="Images\RasterToolsA32.png" />
+    <Content Include="Images\RasterToolsB32.png" />
+    <Content Include="Images\RasterToolsC32.png" />
+    <Content Include="Images\PRZTools32B.png" />
+    <Content Include="DarkImages\PRZTools32B.png" />
+    <Content Include="DarkImages\NationalData32.png" />
+    <Content Include="DarkImages\RegionalData32.png" />
+    <Content Include="Images\NationalData32.png" />
+    <Content Include="Images\RegionalData32.png" />
+    <Content Include="DarkImages\ExportToPRZ16.png" />
+    <Content Include="Images\ExportToPRZ16.png" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CoordSys\CoordSysDialog.xaml.cs">
-      <DependentUpon>CoordSysDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="CoordSys\CoordSysDialogVM.cs" />
-    <Compile Include="CoordSys\CoordSysPickerVM.cs" />
-    <Compile Include="CoordSys\CoordSysPicker.xaml.cs">
-      <DependentUpon>CoordSysPicker.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="CoordSys\CoordSysConverters.cs" />
-    <Compile Include="Daml.cs" />
-    <Compile Include="GDBItemHelper.cs" />
-    <Compile Include="Models\Bort.cs" />
-    <Compile Include="Models\FeatureElement.cs" />
-    <Compile Include="Models\NatElement.cs" />
-    <Compile Include="Models\NationalGrid.cs" />
-    <Compile Include="Models\NatTheme.cs" />
-    <Compile Include="Models\PlanningUnitTileInfo.cs" />
-    <Compile Include="Models\RegElement.cs" />
-    <Compile Include="Models\SelectionRule.cs" />
-    <Compile Include="Models\FeatureUV.cs" />
-    <Compile Include="Models\YamlExclude.cs" />
-    <Compile Include="Models\YamlFeature.cs" />
-    <Compile Include="Models\YamlInclude.cs" />
-    <Compile Include="Models\YamlLegend.cs" />
-    <Compile Include="Models\YamlPackage.cs" />
-    <Compile Include="Models\YamlTheme.cs" />
-    <Compile Include="Models\YamlVariable.cs" />
-    <Compile Include="Models\YamlWeight.cs" />
-    <Compile Include="ViewModels\CostImportFieldsVM.cs" />
-    <Compile Include="ViewModels\DataLoad_NationalVM.cs" />
-    <Compile Include="ViewModels\DataLoad_RegionalVM.cs" />
-    <Compile Include="ViewModels\ExportWTWVM.cs" />
-    <Compile Include="ViewModels\RasterToolsVM.cs" />
-    <Compile Include="ViewModels\RasterToTableVM.cs" />
-    <Compile Include="Views\CostImportFields.xaml.cs">
-      <DependentUpon>CostImportFields.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\DataLoad_National.xaml.cs">
-      <DependentUpon>DataLoad_National.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\DataLoad_Regional.xaml.cs">
-      <DependentUpon>DataLoad_Regional.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\ExportWTW.xaml.cs">
-      <DependentUpon>ExportWTW.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\RasterTools.xaml.cs">
-      <DependentUpon>RasterTools.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\RasterToTable.xaml.cs">
-      <DependentUpon>RasterToTable.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Widgets\Button_DataLoad_National.cs" />
-    <Compile Include="Widgets\Button_DataLoad_Regional.cs" />
-    <Compile Include="Widgets\Button_Export_PRZ.cs" />
-    <Compile Include="Widgets\Button_Export_WTW.cs" />
-    <Compile Include="Widgets\Button_Legend_PU_Boundary.cs" />
-    <Compile Include="Widgets\Button_Legend_PU_CFCount.cs" />
-    <Compile Include="Widgets\Button_Legend_PU_Cost.cs" />
-    <Compile Include="Widgets\Button_Legend_PU_SelRuleConflicts.cs" />
-    <Compile Include="Widgets\Button_Legend_PU_SelRules.cs" />
-    <Compile Include="Widgets\Button_Legend_PU_Basic.cs" />
-    <Compile Include="Models\ProgressManager.cs" />
-    <Compile Include="Models\SelectionRuleConflict.cs" />
-    <Compile Include="ViewModels\FeaturesVM.cs" />
-    <Compile Include="ViewModels\PlanningUnitsVM.cs" />
-    <Compile Include="ViewModels\PUCostVM.cs" />
-    <Compile Include="ViewModels\SelectionRulesVM.cs" />
-    <Compile Include="Views\Features.xaml.cs">
-      <DependentUpon>Features.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\PUCost.xaml.cs">
-      <DependentUpon>PUCost.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\SelectionRules.xaml.cs">
-      <DependentUpon>SelectionRules.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Widgets\Button_Features.cs" />
-    <Compile Include="Widgets\Button_SelectionRules.cs" />
-    <Compile Include="Widgets\Button_PUCost.cs" />
-    <Compile Include="Widgets\Button_RasterTools.cs" />
-    <Compile Include="Widgets\Button_Settings_WS.cs" />
-    <Compile Include="Views\PlanningUnits.xaml.cs">
-      <DependentUpon>PlanningUnits.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Widgets\Button_PlanningUnits.cs" />
-    <Compile Include="Widgets\Button_LoadPRZLayers.cs" />
-    <Compile Include="PRZConstants.cs" />
-    <Compile Include="Module_Main.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
-    <Compile Include="PRZHelper.cs" />
-    <Compile Include="Views\SettingsWS.xaml.cs">
-      <DependentUpon>SettingsWS.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="ViewModels\SettingsWSVM.cs" />
+    <Resource Include="DarkImages\PRZTools16.ico" />
+    <Resource Include="DarkImages\PRZTools32.ico" />
+    <Resource Include="ImagesWPF\dragonfly16.png" />
+    <Resource Include="Images\PRZTools16.ico" />
+    <Resource Include="Images\PRZTools32.ico" />
+    <Resource Include="ImagesWPF\PRZTools16.ico" />
+    <Resource Include="ImagesWPF\PRZTools16.png" />
+    <Resource Include="ImagesWPF\PRZTools32.ico" />
+    <Resource Include="ImagesWPF\PRZTools32.png" />
+    <Resource Include="ImagesWPF\WorkspaceSettings16.png" />
+    <Resource Include="ImagesWPF\WorkspaceSettings32.png" />
+    <Resource Include="ImagesWPF\LoadPRZLayers32.png" />
+    <Resource Include="ImagesWPF\LoadPRZLayers16.png" />
+    <Resource Include="ImagesWPF\BoundaryLengths32.png" />
+    <Resource Include="ImagesWPF\BoundaryLengths16.png" />
+    <Resource Include="ImagesWPF\PUCost16.png" />
+    <Resource Include="ImagesWPF\PUCost32.png" />
+    <Resource Include="ImagesWPF\PUStatus.ico" />
+    <Resource Include="ImagesWPF\ConservationFeatures16.png" />
+    <Resource Include="ImagesWPF\ConservationFeatures32.png" />
+    <Resource Include="ImagesWPF\CoordinateSystem16.png" />
+    <Resource Include="ImagesWPF\CoordinateSystem32.png" />
+    <Resource Include="ImagesWPF\PlanningUnits16.png" />
+    <Resource Include="ImagesWPF\PlanningUnits32.png" />
+    <Resource Include="ImagesWPF\CalculateStatus16.png" />
+    <Resource Include="ImagesWPF\CalculateStatus32.png" />
+    <Resource Include="ImagesWPF\Legend16.png" />
+    <Resource Include="ImagesWPF\Legend32.png" />
+    <Resource Include="ImagesWPF\Table16.png" />
+    <Resource Include="ImagesWPF\Table32.png" />
+    <Resource Include="ImagesWPF\TableDelete16.png" />
+    <Resource Include="ImagesWPF\TableDelete32.png" />
+    <Resource Include="ImagesWPF\ExportToWTW16.png" />
+    <Resource Include="ImagesWPF\ExportToWTW32.png" />
+    <Resource Include="ImagesWPF\Settings_WTW16.png" />
+    <Resource Include="ImagesWPF\Settings_WTW32.png" />
+    <Resource Include="ImagesWPF\ComponentStatus_No16.png" />
+    <Resource Include="ImagesWPF\ComponentStatus_Yes16.png" />
+    <Resource Include="ImagesWPF\ComponentStatus_Warn16.png" />
+    <Resource Include="ImagesWPF\FolderGrey16.png" />
+    <Resource Include="ImagesWPF\Geodatabase16.png" />
+    <Resource Include="ImagesWPF\LogFile16.png" />
+    <Resource Include="ImagesWPF\LogFileDelete16.png" />
+    <Resource Include="ImagesWPF\Settings16.png" />
+    <Resource Include="ImagesWPF\Settings32.png" />
+    <Resource Include="ImagesWPF\RasterToolbox16.png" />
+    <Resource Include="ImagesWPF\RasterToolsA32.png" />
+    <Resource Include="ImagesWPF\RasterToolsB32.png" />
+    <Resource Include="ImagesWPF\RasterToolsC32.png" />
+    <Resource Include="ImagesWPF\Raster16.png" />
+    <Resource Include="ImagesWPF\Raster32.png" />
+    <Resource Include="ImagesWPF\PRZTools32B.png" />
+    <Resource Include="ImagesWPF\BexDog16.png" />
+    <Resource Include="ImagesWPF\MarsCat16.png" />
+    <Resource Include="ImagesWPF\Rabbit16.png" />
+    <Resource Include="ImagesWPF\T-Rex16.png" />
+    <Resource Include="ImagesWPF\NationalData32.png" />
+    <Resource Include="ImagesWPF\RegionalData32.png" />
+    <Resource Include="ImagesWPF\Tree16.png" />
+    <Resource Include="ImagesWPF\ExportToPRZ16.png" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
+    <PackageReference Include="CsvHelper" Version="27.1.1" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <PackageReference Include="System.Memory" Version="4.5.4" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.3" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+    <PackageReference Include="YamlDotNet" Version="11.2.1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
@@ -269,381 +251,124 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include=".gitattributes" />
+    <None Include=".gitignore" />
+    <None Include=".upgrade-assistant" />
+    <None Include="AnalysisReport.sarif" />
+    <None Include="Backup-2.x.zip" />
+    <None Include="README.md" />
+    <None Include="upgrade-assistant.clef" />
+    <None Include=".git\COMMIT_EDITMSG" />
+    <None Include=".git\config" />
+    <None Include=".git\description" />
+    <None Include=".git\HEAD" />
+    <None Include=".git\index" />
+    <None Include=".git\packed-refs" />
+    <None Include=".git\hooks\applypatch-msg.sample" />
+    <None Include=".git\hooks\commit-msg.sample" />
+    <None Include=".git\hooks\fsmonitor-watchman.sample" />
+    <None Include=".git\hooks\post-update.sample" />
+    <None Include=".git\hooks\pre-applypatch.sample" />
+    <None Include=".git\hooks\pre-commit.sample" />
+    <None Include=".git\hooks\pre-merge-commit.sample" />
+    <None Include=".git\hooks\pre-push.sample" />
+    <None Include=".git\hooks\pre-rebase.sample" />
+    <None Include=".git\hooks\pre-receive.sample" />
+    <None Include=".git\hooks\prepare-commit-msg.sample" />
+    <None Include=".git\hooks\update.sample" />
+    <None Include=".git\info\exclude" />
+    <None Include=".git\logs\HEAD" />
+    <None Include=".git\logs\refs\heads\master" />
+    <None Include=".git\logs\refs\heads\ss-dotnet-migration" />
+    <None Include=".git\logs\refs\heads\ss-nuget-migration" />
+    <None Include=".git\logs\refs\remotes\origin\HEAD" />
+    <None Include=".git\objects\22\ed691557a969d2ff1b606aad976d5355ba4df2" />
+    <None Include=".git\objects\2c\5d13c0f3c4b05d26b94c93824b0e259313f8f2" />
+    <None Include=".git\objects\77\3aa549c1f2b3841d17f80cca59feabcb1a2fe9" />
+    <None Include=".git\objects\83\26c64369f69b9f2e41b8022b3dfa775da30894" />
+    <None Include=".git\objects\99\1fd2730fa7aedbcdfbb5b29b462c133d933fad" />
+    <None Include=".git\objects\c0\645374b1394ea887b9987367c2073e7bf9e7a9" />
+    <None Include=".git\objects\de\8d4478ee21edd48a7160e03ecff676b6cba409" />
+    <None Include=".git\objects\fe\e87299cabb026e33a9d091f3eb0146f1c89ab9" />
+    <None Include=".git\objects\pack\pack-7ecd7c073f98c6308750a45a52fd0486a11853e4.idx" />
+    <None Include=".git\objects\pack\pack-7ecd7c073f98c6308750a45a52fd0486a11853e4.pack" />
+    <None Include=".git\refs\heads\master" />
+    <None Include=".git\refs\heads\ss-dotnet-migration" />
+    <None Include=".git\refs\heads\ss-nuget-migration" />
+    <None Include=".git\refs\remotes\origin\HEAD" />
+    <None Include="DarkImages\PRZTools16.ico" />
+    <None Include="DarkImages\PRZTools32.ico" />
+    <None Include="Images\FileRasterGrid16.png" />
+    <None Include="Images\FileRasterGrid32.png" />
+    <None Include="Images\PRZTools16.ico" />
+    <None Include="Images\PRZTools32.ico" />
+    <None Include="ImagesWPF\BexDog16.png" />
+    <None Include="ImagesWPF\BoundaryLengths16.png" />
+    <None Include="ImagesWPF\BoundaryLengths32.png" />
+    <None Include="ImagesWPF\CalculateStatus16.png" />
+    <None Include="ImagesWPF\CalculateStatus32.png" />
+    <None Include="ImagesWPF\ComponentStatus_No16.png" />
+    <None Include="ImagesWPF\ComponentStatus_Warn16.png" />
+    <None Include="ImagesWPF\ComponentStatus_Yes16.png" />
+    <None Include="ImagesWPF\ConservationFeatures16.png" />
+    <None Include="ImagesWPF\ConservationFeatures32.png" />
+    <None Include="ImagesWPF\CoordinateSystem16.png" />
+    <None Include="ImagesWPF\CoordinateSystem32.png" />
+    <None Include="ImagesWPF\Dragonfly16.png" />
+    <None Include="ImagesWPF\ExportToPRZ16.png" />
+    <None Include="ImagesWPF\ExportToWTW16.png" />
+    <None Include="ImagesWPF\ExportToWTW32.png" />
+    <None Include="ImagesWPF\FolderGrey16.png" />
+    <None Include="ImagesWPF\Geodatabase16.png" />
+    <None Include="ImagesWPF\Legend16.png" />
+    <None Include="ImagesWPF\Legend32.png" />
+    <None Include="ImagesWPF\LoadPRZLayers16.png" />
+    <None Include="ImagesWPF\LoadPRZLayers32.png" />
+    <None Include="ImagesWPF\LogFile16.png" />
+    <None Include="ImagesWPF\LogFileDelete16.png" />
+    <None Include="ImagesWPF\MarsCat16.png" />
+    <None Include="ImagesWPF\NationalData32.png" />
+    <None Include="ImagesWPF\PlanningUnits16.png" />
+    <None Include="ImagesWPF\PlanningUnits32.png" />
+    <None Include="ImagesWPF\PRZTools16.ico" />
+    <None Include="ImagesWPF\PRZTools16.png" />
+    <None Include="ImagesWPF\PRZTools32.ico" />
+    <None Include="ImagesWPF\PRZTools32.png" />
+    <None Include="ImagesWPF\PRZTools32B.png" />
+    <None Include="ImagesWPF\PUCost16.png" />
+    <None Include="ImagesWPF\PUCost32.png" />
+    <None Include="ImagesWPF\PUStatus.ico" />
+    <None Include="ImagesWPF\Rabbit16.png" />
+    <None Include="ImagesWPF\Raster16.png" />
+    <None Include="ImagesWPF\Raster32.png" />
+    <None Include="ImagesWPF\RasterToolbox16.png" />
+    <None Include="ImagesWPF\RasterToolsA32.png" />
+    <None Include="ImagesWPF\RasterToolsB32.png" />
+    <None Include="ImagesWPF\RasterToolsC32.png" />
+    <None Include="ImagesWPF\RegionalData32.png" />
+    <None Include="ImagesWPF\Settings16.png" />
+    <None Include="ImagesWPF\Settings32.png" />
+    <None Include="ImagesWPF\Settings_WTW16.png" />
+    <None Include="ImagesWPF\Settings_WTW32.png" />
+    <None Include="ImagesWPF\T-Rex16.png" />
+    <None Include="ImagesWPF\Table16.png" />
+    <None Include="ImagesWPF\Table32.png" />
+    <None Include="ImagesWPF\TableDelete16.png" />
+    <None Include="ImagesWPF\TableDelete32.png" />
+    <None Include="ImagesWPF\Tree16.png" />
+    <None Include="ImagesWPF\WorkspaceSettings16.png" />
+    <None Include="ImagesWPF\WorkspaceSettings32.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
   </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\PRZTools16.png" />
-    <AddInContent Include="DarkImages\PRZTools32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\PRZTools16.png" />
-    <AddInContent Include="Images\PRZTools32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="CoordSys\CoordSysDialog.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="CoordSys\CoordSysPicker.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\DataLoad_National.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\DataLoad_Regional.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\Features.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\CostImportFields.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\ExportWTW.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\PlanningUnits.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\PUCost.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\RasterToTable.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\SelectionRules.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\SettingsWS.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\RasterTools.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="DarkImages\PRZTools16.ico" />
-    <Resource Include="DarkImages\PRZTools32.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\dragonfly16.png" />
-    <Resource Include="Images\PRZTools16.ico" />
-    <Resource Include="Images\PRZTools32.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\PRZTools16.ico" />
-    <Resource Include="ImagesWPF\PRZTools16.png" />
-    <Resource Include="ImagesWPF\PRZTools32.ico" />
-    <Resource Include="ImagesWPF\PRZTools32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\WorkspaceSettings16.png" />
-    <Resource Include="ImagesWPF\WorkspaceSettings32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\WorkspaceSettings16.png" />
-    <AddInContent Include="Images\WorkspaceSettings32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\WorkspaceSettings16.png" />
-    <AddInContent Include="DarkImages\WorkspaceSettings32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\LoadPRZLayers32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\LoadPRZLayers32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\LoadPRZLayers32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\LoadPRZLayers16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\LoadPRZLayers16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\LoadPRZLayers16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\BoundaryLengths32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\BoundaryLengths32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\BoundaryLengths32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\BoundaryLengths16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\BoundaryLengths16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\BoundaryLengths16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\PUCost16.png" />
-    <AddInContent Include="DarkImages\PUCost32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\PUCost16.png" />
-    <AddInContent Include="Images\PUCost32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\PUCost16.png" />
-    <Resource Include="ImagesWPF\PUCost32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\PUStatus16.png" />
-    <AddInContent Include="DarkImages\PUStatus32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\PUStatus16.png" />
-    <AddInContent Include="Images\PUStatus32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\PUStatus.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\ConservationFeatures16.png" />
-    <AddInContent Include="DarkImages\ConservationFeatures32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\ConservationFeatures16.png" />
-    <AddInContent Include="Images\ConservationFeatures32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\ConservationFeatures16.png" />
-    <Resource Include="ImagesWPF\ConservationFeatures32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\CoordinateSystem16.png" />
-    <AddInContent Include="DarkImages\CoordinateSystem32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\CoordinateSystem16.png" />
-    <AddInContent Include="Images\CoordinateSystem32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\CoordinateSystem16.png" />
-    <Resource Include="ImagesWPF\CoordinateSystem32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\PlanningUnits16.png" />
-    <Resource Include="ImagesWPF\PlanningUnits32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\PlanningUnits16.png" />
-    <AddInContent Include="Images\PlanningUnits32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\PlanningUnit16.png" />
-    <AddInContent Include="DarkImages\PlanningUnit32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\CalculateStatus16.png" />
-    <AddInContent Include="DarkImages\CalculateStatus32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\CalculateStatus16.png" />
-    <AddInContent Include="Images\CalculateStatus32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\CalculateStatus16.png" />
-    <Resource Include="ImagesWPF\CalculateStatus32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\Legend16.png" />
-    <AddInContent Include="DarkImages\Legend32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\Legend16.png" />
-    <AddInContent Include="Images\Legend32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\Legend16.png" />
-    <Resource Include="ImagesWPF\Legend32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\Table16.png" />
-    <Resource Include="ImagesWPF\Table32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\Table16.png" />
-    <AddInContent Include="Images\Table32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\Table16.png" />
-    <AddInContent Include="DarkImages\Table32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\TableDelete16.png" />
-    <Resource Include="ImagesWPF\TableDelete32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\TableDelete16.png" />
-    <AddInContent Include="Images\TableDelete32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\TableDelete16.png" />
-    <AddInContent Include="DarkImages\TableDelete32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\ExportToWTW16.png" />
-    <Resource Include="ImagesWPF\ExportToWTW32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\ExportToWTW16.png" />
-    <AddInContent Include="Images\ExportToWTW32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\ExportToWTW16.png" />
-    <AddInContent Include="DarkImages\ExportToWTW32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\Settings_WTW16.png" />
-    <AddInContent Include="Images\Settings_WTW32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\Settings_WTW16.png" />
-    <AddInContent Include="DarkImages\Settings_WTW32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\Settings_WTW16.png" />
-    <Resource Include="ImagesWPF\Settings_WTW32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\ComponentStatus_No16.png" />
-    <Resource Include="ImagesWPF\ComponentStatus_Yes16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\ComponentStatus_Warn16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\FolderGrey16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\Geodatabase16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\LogFile16.png" />
-    <Resource Include="ImagesWPF\LogFileDelete16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\Settings16.png" />
-    <AddInContent Include="DarkImages\Settings32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\Settings16.png" />
-    <AddInContent Include="Images\Settings32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\Settings16.png" />
-    <Resource Include="ImagesWPF\Settings32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\RasterToolbox16.png" />
-    <AddInContent Include="DarkImages\RasterToolsA32.png" />
-    <AddInContent Include="DarkImages\RasterToolsB32.png" />
-    <AddInContent Include="DarkImages\RasterToolsC32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\RasterToolbox16.png" />
-    <AddInContent Include="Images\RasterToolsA32.png" />
-    <AddInContent Include="Images\RasterToolsB32.png" />
-    <AddInContent Include="Images\RasterToolsC32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\RasterToolbox16.png" />
-    <Resource Include="ImagesWPF\RasterToolsA32.png" />
-    <Resource Include="ImagesWPF\RasterToolsB32.png" />
-    <Resource Include="ImagesWPF\RasterToolsC32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\Raster16.png" />
-    <Resource Include="ImagesWPF\Raster32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\PRZTools32B.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\PRZTools32B.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\PRZTools32B.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\BexDog16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\MarsCat16.png" />
-    <Resource Include="ImagesWPF\Rabbit16.png" />
-    <Resource Include="ImagesWPF\T-Rex16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\NationalData32.png" />
-    <AddInContent Include="DarkImages\RegionalData32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\NationalData32.png" />
-    <AddInContent Include="Images\RegionalData32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\NationalData32.png" />
-    <Resource Include="ImagesWPF\RegionalData32.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\Tree16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="DarkImages\ExportToPRZ16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <AddInContent Include="Images\ExportToPRZ16.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="ImagesWPF\ExportToPRZ16.png" />
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!--
-  PackageAction can be:
-  BuildDefault: ArcGIS Pro is required. An esriAddinX package is created and copied to ArcGIS Pro add-in folder.
-  BuildZipPostProcess: ArcGIS Pro install is NOT required to build the add-in.  An esriAddinX package is created in your output folder.
-  BuildNoPostProcess:  ArcGIS Pro install is NOT required to build the add-in.  An esriAddinX package is NOT created.
-  -->
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
-    <PackageAction>BuildZipPostProcess</PackageAction>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
-    <PackageAction>BuildZipPostProcess</PackageAction>
-  </PropertyGroup>
-  <UsingTask AssemblyFile="C:\Program Files\ArcGIS\Pro\bin\proapp-sdk-MSBuild.dll" TaskName="proapp_sdk_MSBuild.PackageAddIn" />
-  <UsingTask AssemblyFile="C:\Program Files\ArcGIS\Pro\bin\proapp-sdk-MSBuild.dll" TaskName="proapp_sdk_MSBuild.CleanAddIn" />
-  <UsingTask AssemblyFile="C:\Program Files\ArcGIS\Pro\bin\proapp-sdk-MSBuild.dll" TaskName="proapp_sdk_MSBuild.ConvertToRelativePath" />
-  <!--<Import Project="Esri.ArcGISPro.Extensions.targets" Condition="Exists('Esri.ArcGISPro.Extensions.targets')" />-->
   <Import Project="C:\Program Files\ArcGIS\Pro\bin\Esri.ProApp.SDK.Desktop.targets" Condition="Exists('C:\Program Files\ArcGIS\Pro\bin\Esri.ProApp.SDK.Desktop.targets') AND !Exists('Esri.ArcGISPro.Extensions.targets')" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
-  <!--<Target Name="BeforeBuild">
-    <Error Text="C:\Program Files\ArcGIS\Pro\bin\Esri.ProApp.SDK.Desktop.targets not found." Condition="!Exists('C:\Program Files\ArcGIS\Pro\bin\Esri.ProApp.SDK.Desktop.targets') AND !Exists('Esri.ArcGISPro.Extensions.targets')" />
-  </Target>-->
 </Project>

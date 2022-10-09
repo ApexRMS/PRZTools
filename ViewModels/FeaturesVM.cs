@@ -2307,7 +2307,7 @@ namespace NCC.PRZTools
                                 }
                             }
 
-                            int c = table.GetCount();
+                            long c = table.GetCount();
                         }
 
                         return true;
@@ -2575,7 +2575,7 @@ namespace NCC.PRZTools
 
                         using (Selection selection = FL.Select(QF, SelectionCombinationMethod.New))
                         {
-                            int counter = selection.GetCount();
+                            long counter = selection.GetCount();
                             string label = (counter == 1) ? "" : "s";
                             ProMsgBox.Show($"{counter} Planning Unit{label} Selected");
                         }

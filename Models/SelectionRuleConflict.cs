@@ -28,7 +28,7 @@ namespace NCC.PRZTools
 
         public string exclude_rule_statefield { get; set; }
 
-        public int pu_count { get; set; }
+        public long pu_count { get; set; }
 
 
     }

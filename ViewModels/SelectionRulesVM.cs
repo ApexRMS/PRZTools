@@ -2148,7 +2148,7 @@ namespace NCC.PRZTools
                                 }
                             }
 
-                            int c = table.GetCount();
+                            long c = table.GetCount();
                         }
 
                         return true;
@@ -2275,7 +2275,7 @@ namespace NCC.PRZTools
                                     WhereClause = include.Value.statefield + @" = 1 And " + exclude.Value.statefield + @" = 1"
                                 };
 
-                                int rowcount = 0;
+                                long rowcount = 0;
 
                                 var tryget = PRZH.GetTable_Project(PRZC.c_TABLE_PUSELRULES);
                                 if (!tryget.success)
@@ -2572,7 +2572,7 @@ namespace NCC.PRZTools
 
                         using (Selection selection = FL.Select(QF, SelectionCombinationMethod.New))
                         {
-                            int counter = selection.GetCount();
+                            long counter = selection.GetCount();
                             string label = (counter == 1) ? "" : "s";
                             ProMsgBox.Show($"{counter} Planning Unit{label} Selected");
                         }
@@ -2706,7 +2706,7 @@ namespace NCC.PRZTools
 
                         using (Selection selection = FL.Select(QF, SelectionCombinationMethod.New))
                         {
-                            int counter = selection.GetCount();
+                            long counter = selection.GetCount();
                             string label = (counter == 1) ? "" : "s";
                             ProMsgBox.Show($"{counter} Planning Unit{label} Selected");
                         }
