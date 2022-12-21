@@ -38,8 +38,6 @@
         <group id="prz_group_configuration" caption="Tools and Settings" keytip="z">
           <!--Workspace Settings Button-->
           <button refID="prz_button_settings_ws" size="large" />
-          <!--Raster Tools Button-->
-          <button refID="prz_button_rastertools" size="large" />
         </group>
         <!--ASSEMBLY GROUP-->
         <group id="prz_group_assembly" caption="Project" keytip="z">
