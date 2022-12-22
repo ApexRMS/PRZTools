@@ -1682,7 +1682,14 @@ namespace NCC.PRZTools
                 string message = PRZH.GetElapsedTimeMessage(stopwatch.Elapsed);
                 PRZH.UpdateProgress(PM, PRZH.WriteLog("WTW export completed successfully!"), true, 1, 1);
                 PRZH.UpdateProgress(PM, PRZH.WriteLog(message), true, 1, 1);
-                ProMsgBox.Show("WTW Export Completed Successfully!" + Environment.NewLine + Environment.NewLine + message);
+                if (yamlThemes.Count > 0)
+                {
+                    ProMsgBox.Show("WTW Export Completed Successfully!" + Environment.NewLine + Environment.NewLine + message);
+                }
+                else
+                {
+                    ProMsgBox.Show("No themes found for your study area! At least one theme is required to use the Where to Work application. Please check your study area and data sources." + Environment.NewLine + Environment.NewLine + message);
+                }
             }
             catch (OperationCanceledException)
             {
