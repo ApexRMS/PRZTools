@@ -1463,6 +1463,14 @@ namespace NCC.PRZTools
                         return;
                     }
 
+                    // Temporary: Only allow 1km National Grid until the rest are supported
+                    if (!PUSource_Rad_NatGrid_1Km_IsChecked)
+                    {
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Chosen National Grid dimension currently not supported.", LogMessageType.VALIDATION_ERROR), true, ++val);
+                        ProMsgBox.Show("Only the 1km National Grid is currently supported, please select another National Grid dimension.", "Validation");
+                        return;
+                    }
+
                     // calculate dimension and side length
                     if (PUSource_Rad_NatGrid_1M_IsChecked)
                     {
