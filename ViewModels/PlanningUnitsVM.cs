@@ -1065,24 +1065,7 @@ namespace NCC.PRZTools
 
                         foreach (var GL in GLs)
                         {
-                            var selectedElements = GL.GetSelectedElements().OfType<GraphicElement>();
-                            bool hasPolys = false;
-
-                            foreach (var elem in selectedElements)
-                            {
-                                CIMGraphic g = elem.GetGraphic();
-
-                                if (g is CIMPolygonGraphic)
-                                {
-                                    hasPolys = true;
-                                    break;
-                                }
-                            }
-
-                            if (hasPolys)
-                            {
-                                graphicsLayers.Add(GL);
-                            }
+                            graphicsLayers.Add(GL);
                         }
 
                         return true;
@@ -1713,8 +1696,15 @@ namespace NCC.PRZTools
                     // Get the selected polygon graphics from the graphics layer
                     GraphicsLayer gl = SASource_Cmb_Graphic_SelectedGraphicsLayer;
 
-                    var selElems = gl.GetSelectedElements().OfType<GraphicElement>();
+                    var selElems = gl.GetElements().OfType<GraphicElement>();
                     int polyelems = 0;
+
+                    if (selElems.Count() == 0)
+                    {
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"No polygons found in chosen Graphics Layer.", LogMessageType.ERROR), true, ++val);
+                        ProMsgBox.Show($"The chosen Graphics Layer appears to be empty. Please add one or more polygons to the layer or choose another Graphics Layer.");
+                        return;
+                    }
 
                     await QueuedTask.Run(() =>
                     {
