@@ -43,6 +43,8 @@ namespace NCC.PRZTools
         private string _prjSettings_Txt_ProjectFolderPath;
         private string _prjSettings_Txt_RegionalFolderPath;
         private string _prjSettings_Txt_NationalDbPath;
+        private string _outputSettings_Txt_AuthorName;
+        private string _outputSettings_Txt_AuthorEmail;
 
         private Visibility _natDbInfo_Vis_DockPanel = Visibility.Hidden;
         private string _natDbInfo_Txt_DbName;
@@ -135,6 +137,28 @@ namespace NCC.PRZTools
             }
         }
 
+        public string OutputSettings_Txt_AuthorName
+        {
+            get => _outputSettings_Txt_AuthorName;
+            set
+            {
+                SetProperty(ref _outputSettings_Txt_AuthorName, value, () => OutputSettings_Txt_AuthorName);
+                Properties.Settings.Default.AUTHOR_NAME = value;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        public string OutputSettings_Txt_AuthorEmail
+        {
+            get => _outputSettings_Txt_AuthorEmail;
+            set
+            {
+                SetProperty(ref _outputSettings_Txt_AuthorEmail, value, () => OutputSettings_Txt_AuthorEmail);
+                Properties.Settings.Default.AUTHOR_EMAIL = value;
+                Properties.Settings.Default.Save();
+            }
+        }
+
         #region COMMANDS
 
         public ICommand CmdViewLogFile => _cmdViewLogFile ?? (_cmdViewLogFile = new RelayCommand(() => ViewLogFile(), () => true));
@@ -199,6 +223,28 @@ namespace NCC.PRZTools
                 else
                 {
                     PrjSettings_Txt_NationalDbPath = natpath;
+                }
+
+                // Author Name
+                string autname = Properties.Settings.Default.AUTHOR_NAME;
+                if (string.IsNullOrEmpty(autname) || string.IsNullOrWhiteSpace(autname))
+                {
+                    OutputSettings_Txt_AuthorName = "";
+                }
+                else
+                {
+                    OutputSettings_Txt_AuthorName = autname;
+                }
+
+                // Author Email
+                string autemail = Properties.Settings.Default.AUTHOR_EMAIL;
+                if (string.IsNullOrEmpty(autemail) || string.IsNullOrWhiteSpace(autemail))
+                {
+                    OutputSettings_Txt_AuthorEmail = "";
+                }
+                else
+                {
+                    OutputSettings_Txt_AuthorEmail = autemail;
                 }
 
                 // Validate National Db

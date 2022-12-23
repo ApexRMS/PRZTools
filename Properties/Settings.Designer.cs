@@ -382,5 +382,34 @@ namespace NCC.PRZTools.Properties {
                 this["COORDSYSPICKER_SROUT"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string AUTHOR_NAME
+        {
+            get
+            {
+                return ((string)(this["AUTHOR_NAME"]));
+            }
+            set
+            {
+                this["AUTHOR_NAME"] = value;
+            }
+        }
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string AUTHOR_EMAIL
+        {
+            get
+            {
+                return ((string)(this["AUTHOR_EMAIL"]));
+            }
+            set
+            {
+                this["AUTHOR_EMAIL"] = value;
+            }
+        }
     }
 }

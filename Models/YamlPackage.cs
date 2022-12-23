@@ -12,10 +12,10 @@ namespace NCC.PRZTools
         public string name;
 
         // Author Name (optional but defaults in WTW to Richard Schuster)
-        public string author_name = "Richard Schuster";
+        public string author_name = Properties.Settings.Default.AUTHOR_NAME;
 
         // Author Email (optional but defaults in WTW to richard.schuster@natureconservancy.ca)
-        public string author_email = "richard.schuster@natureconservancy.ca";
+        public string author_email = Properties.Settings.Default.AUTHOR_EMAIL;
 
         // Name of shapefile - .shp extension and no path (e.g. the_shapefile.shp)
         public string spatial_path = PRZC.c_FILE_WTW_EXPORT_SPATIAL + ".shp";

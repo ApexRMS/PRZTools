@@ -36,6 +36,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"></RowDefinition>
+                <RowDefinition Height="*"></RowDefinition>
             </Grid.RowDefinitions>
 
             <!--Inner Border #1-->
@@ -273,6 +274,58 @@
                 </DockPanel>
             </Border>
 
+            <Border 
+                Grid.Row="1"
+                BorderThickness="1.5"
+                BorderBrush="{DynamicResource Esri_BorderBrush}">
+
+                <DockPanel
+                    LastChildFill="True"
+                    Background="{DynamicResource Esri_DialogClientAreaBackgroundBrush}">
+
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        Margin="5" 
+                        Style="{DynamicResource Esri_TextBlockH4}"
+                        Text="Output Settings" />
+
+                    <DockPanel
+                        DockPanel.Dock="Top"
+                        LastChildFill="False">
+
+                        <TextBlock 
+                            DockPanel.Dock="Left"
+                            Margin="20, 5, 5, 10" 
+                            VerticalAlignment="Center" 
+                            Style="{DynamicResource Esri_TextBlockRegular}"
+                            Text="Author Name:" />
+
+                        <TextBox
+                            DockPanel.Dock="Left"
+                            Margin="5, 5, 5, 10"
+                            Width="200"
+                            Text="{Binding OutputSettings_Txt_AuthorName}" />
+                    </DockPanel>
+
+                    <DockPanel
+                        DockPanel.Dock="Top"
+                        LastChildFill="False">
+
+                        <TextBlock 
+                            DockPanel.Dock="Left"
+                            Margin="20, 5, 5, 10" 
+                            VerticalAlignment="Center" 
+                            Style="{DynamicResource Esri_TextBlockRegular}"
+                            Text="Author Email:" />
+
+                        <TextBox
+                            DockPanel.Dock="Left"
+                            Margin="8, 5, 5, 10"
+                            Width="200"
+                            Text="{Binding OutputSettings_Txt_AuthorEmail}" />
+                    </DockPanel>
+                </DockPanel>
+            </Border>
         </Grid>
     </Border>
 </controls:ProWindow>

@@ -1652,7 +1652,7 @@ namespace NCC.PRZTools
                 #region YAML PACKAGE
 
                 YamlPackage yamlPackage = new YamlPackage();
-                yamlPackage.name = "TEMP PROJECT NAME";                 // Could be customized later, or derived from the ArcGIS Pro project name
+                yamlPackage.name = System.IO.Path.GetFileNameWithoutExtension(CoreModule.CurrentProject.Name);
                 yamlPackage.mode = WTWModeType.advanced.ToString();     // Which of these should I use?
                 yamlPackage.themes = yamlThemes.ToArray();
                 yamlPackage.weights = yamlWeights.ToArray();
