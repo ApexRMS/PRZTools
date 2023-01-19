@@ -1731,8 +1731,8 @@ namespace NCC.PRZTools
                     await QueuedTask.Run(() =>
                     {
                         PolygonBuilder polyBuilder = new PolygonBuilder(fl.GetSpatialReference());
-
-                        using (RowCursor rowCursor = fl.GetFeatureClass().Search(null, false))
+                        
+                        using (RowCursor rowCursor = fl.SelectionCount == 0 ? fl.GetFeatureClass().Search(null, false) : fl.GetSelection().Search(null, false))
                         {
                             while (rowCursor.MoveNext())
                             {
