@@ -1110,11 +1110,6 @@ namespace NCC.PRZTools
                                 continue;
                             }
 
-                            if (flayer.SelectionCount == 0)
-                            {
-                                continue;
-                            }
-
                             FLayersWithSelections.Add(flayer);
                         }
                         return true;
@@ -1737,8 +1732,7 @@ namespace NCC.PRZTools
                     {
                         PolygonBuilder polyBuilder = new PolygonBuilder(fl.GetSpatialReference());
 
-                        using (Selection selection = fl.GetSelection())
-                        using (RowCursor rowCursor = selection.Search(null, false))
+                        using (RowCursor rowCursor = fl.GetFeatureClass().Search(null, false))
                         {
                             while (rowCursor.MoveNext())
                             {
