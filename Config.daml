@@ -66,8 +66,8 @@
       <controls>
         <!--TOOLS AND SETTINGS CONTROLS-->
         <!--Workspace Settings Dialog Button-->
-        <button id="prz_button_settings_ws" caption="Settings" className="Button_Settings_WS" keytip="z" loadOnClick="true" smallImage="Images\Settings16.png" largeImage="Images\Settings32.png">
-          <tooltip heading="Workspace Settings">
+        <button id="prz_button_settings_ws" caption="Workspace Setup" className="Button_Settings_WS" keytip="z" loadOnClick="true" smallImage="Images\Settings16.png" largeImage="Images\Settings32.png">
+          <tooltip heading="Workspace Setup">
             Specify the PRZ Tools Workspace Folder, and other neat stuff.
             <disabledText></disabledText></tooltip>
         </button>
