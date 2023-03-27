@@ -1,5 +1,6 @@
 ﻿using ArcGIS.Core.Data;
 using ArcGIS.Core.Data.DDL;
+using ArcGIS.Core.Data.Raster;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Core;
 using ArcGIS.Desktop.Core.Geoprocessing;
@@ -317,11 +318,11 @@ namespace NCC.PRZTools
                 // Capture the Planning Unit Spatial Reference
                 SpatialReference PlanningUnitSR = await QueuedTask.Run(() =>
                 {
-                    var tryget_fc = PRZH.GetFC_Project(PRZC.c_FC_PLANNING_UNITS);
-                    using (FeatureClass featureClass = tryget_fc.featureclass)
-                    using (FeatureClassDefinition fcDef = featureClass.GetDefinition())
+                    var tryget_ras = PRZH.GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
+                    using (RasterDataset rasterDataset = tryget_ras.rasterDataset)
+                    using (RasterDatasetDefinition rasterDef = rasterDataset.GetDefinition())
                     {
-                        return fcDef.GetSpatialReference();
+                        return rasterDef.GetSpatialReference();
                     }
                 });
 
@@ -484,18 +485,19 @@ namespace NCC.PRZTools
 
                 PRZH.CheckForCancellation(token);
 
-                // Generate the National Element spatial datasets
-                var tryspat = await GenerateSpatialDatasets(token);
-                if (!tryspat.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error generating national spatial datasets.\n{tryspat.message}", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error generating national spatial datasets.\n{tryspat.message}.");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"National spatial datasets generated successfully."), true, ++val);
-                }
+                // TODO: Visualize national database data without Feature classes
+                //// Generate the National Element spatial datasets
+                //var tryspat = await GenerateSpatialDatasets(token);
+                //if (!tryspat.success)
+                //{
+                //    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error generating national spatial datasets.\n{tryspat.message}", LogMessageType.ERROR), true, ++val);
+                //    ProMsgBox.Show($"Error generating national spatial datasets.\n{tryspat.message}.");
+                //    return;
+                //}
+                //else
+                //{
+                //    PRZH.UpdateProgress(PM, PRZH.WriteLog($"National spatial datasets generated successfully."), true, ++val);
+                //}
 
                 #endregion
 
@@ -1118,11 +1120,11 @@ namespace NCC.PRZTools
                 // Get the Planning Unit SR
                 SpatialReference PlanningUnitSR = await QueuedTask.Run(() =>
                 {
-                    var tryget_fc = PRZH.GetFC_Project(PRZC.c_FC_PLANNING_UNITS);
-                    using (FeatureClass featureClass = tryget_fc.featureclass)
-                    using (FeatureClassDefinition fcDef = featureClass.GetDefinition())
+                    var tryget_ras = PRZH.GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
+                    using (RasterDataset rasterDataset = tryget_ras.rasterDataset)
+                    using (RasterDatasetDefinition rasterDef = rasterDataset.GetDefinition())
                     {
-                        return fcDef.GetSpatialReference();
+                        return rasterDef.GetSpatialReference();
                     }
                 });
 

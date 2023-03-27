@@ -237,7 +237,7 @@
         // EXPORT WTW FILES
         public const string c_FILE_WTW_EXPORT_SPATIAL = "WTW_SPATIAL";
         public const string c_FILE_WTW_EXPORT_ATTR = "WTW_ATTRIBUTE.csv";
-        public const string c_FILE_WTW_EXPORT_BND = "WTW_BOUNDARY.dat";
+        public const string c_FILE_WTW_EXPORT_BND = "WTW_BOUNDARY.csv";
         public const string c_FILE_WTW_EXPORT_YAML = "WTW_CONFIG.yaml";
 
         #endregion
@@ -344,6 +344,7 @@
         public const string c_FLD_RAS_PU_AREA_AC = c_FLD_FC_PU_AREA_AC;
         public const string c_FLD_RAS_PU_AREA_HA = c_FLD_FC_PU_AREA_HA;
         public const string c_FLD_RAS_PU_AREA_KM2 = c_FLD_FC_PU_AREA_KM2;
+        public const string c_FLD_RAS_PU_BOUNDARY_ID = c_FLD_FC_PU_BOUNDARY_ID;
         public const string c_FLD_RAS_PU_FEATURECOUNT = c_FLD_FC_PU_FEATURECOUNT;
         public const string c_FLD_RAS_PU_SHARED_PERIM = c_FLD_FC_PU_SHARED_PERIM;
         public const string c_FLD_RAS_PU_UNSHARED_PERIM = c_FLD_FC_PU_UNSHARED_PERIM;
@@ -363,6 +364,7 @@
         public const string c_FLD_FC_PU_AREA_AC = "area_ac";
         public const string c_FLD_FC_PU_AREA_HA = "area_ha";
         public const string c_FLD_FC_PU_AREA_KM2 = "area_km2";
+        public const string c_FLD_FC_PU_BOUNDARY_ID = "boundary_id";
         public const string c_FLD_FC_PU_CONFLICT = "rule_conflict";
         public const string c_FLD_FC_PU_FEATURECOUNT = "feature_count";
         public const string c_FLD_FC_PU_SHARED_PERIM = "shared_perimeter_m";
@@ -481,9 +483,9 @@
         public const string c_FLD_TAB_CF_LYR_GOAL = "lyr_goal";                 // Probably not necessary
 
         // BOUNDARY
-        public const string c_FLD_TAB_BOUND_ID1 = "id1";
-        public const string c_FLD_TAB_BOUND_ID2 = "id2";
-        public const string c_FLD_TAB_BOUND_BOUNDARY = "boundary";
+        public const string c_FLD_TAB_BOUND_ID1 = "i";
+        public const string c_FLD_TAB_BOUND_ID2 = "j";
+        public const string c_FLD_TAB_BOUND_BOUNDARY = "x";
 
         // COST ZONAL STATS
         public const string c_FLD_COST_ID = c_FLD_FC_PU_ID;

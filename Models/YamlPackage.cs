@@ -18,13 +18,13 @@ namespace NCC.PRZTools
         public string author_email = Properties.Settings.Default.AUTHOR_EMAIL;
 
         // Name of shapefile - .shp extension and no path (e.g. the_shapefile.shp)
-        public string spatial_path = PRZC.c_FILE_WTW_EXPORT_SPATIAL + ".shp";
+        public string spatial_path = PRZC.c_FILE_WTW_EXPORT_SPATIAL + ".tif";
 
         // Name of attribute csv file - .csv extension and no path (e.g. the_attributes.csv)
-        public string attribute_path = PRZC.c_FILE_WTW_EXPORT_ATTR;
+        public string attribute_path = PRZC.c_FILE_WTW_EXPORT_ATTR + ".gz";
 
         // Name of boundary csv file - .cxv extension and no path (.e.g. the_boundary.csv)
-        public string boundary_path = PRZC.c_FILE_WTW_EXPORT_BND;
+        public string boundary_path = PRZC.c_FILE_WTW_EXPORT_BND + ".gz";
 
         // must be 'beginner', 'advanced', or 'missing'
         public string mode = WTWModeType.beginner.ToString();

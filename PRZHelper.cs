@@ -1188,12 +1188,32 @@ namespace NCC.PRZTools
                 bool fc_exists = (await FCExists_Project(PRZC.c_FC_PLANNING_UNITS)).exists;
                 bool ras_exists = (await RasterExists_Project(PRZC.c_RAS_PLANNING_UNITS)).exists;
 
-                if (fc_exists & ras_exists)
+                if(ras_exists) // if (fc_exists & ras_exists) // TODO: Clean up after testing without fc
                 {
                     // Determine if dataset is national-enabled or not
                     return await QueuedTask.Run(() =>
                     {
-                        var tryget_fc = GetFC_Project(PRZC.c_FC_PLANNING_UNITS);
+                        var tryget_ras = GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
+                        using (RasterDataset rasterDataset = tryget_ras.rasterDataset)
+                        using (Raster raster = rasterDataset.CreateFullRaster())
+                        using (Table table = raster.GetAttributeTable())
+                        using (TableDefinition rasDef= table.GetDefinition())
+                        {
+                            // Search for the cell number field
+                            var a = rasDef.GetFields().Where(f => string.Equals(f.Name, PRZC.c_FLD_RAS_PU_NATGRID_CELL_NUMBER, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
+
+                            if (a == null)
+                            {
+                                // no cellnumber field found
+                                return (true, false, "cell number field not found");
+                            }
+                            else
+                            {
+                                // cell number field found
+                                return (true, true, "cell number field found");
+                            }
+                        }
+/*                        var tryget_fc = GetFC_Project(PRZC.c_FC_PLANNING_UNITS);
                         using (FeatureClass fc = tryget_fc.featureclass)
                         using (FeatureClassDefinition fcDef = fc.GetDefinition())
                         {
@@ -1210,7 +1230,7 @@ namespace NCC.PRZTools
                                 // cell number field found
                                 return (true, true, "cell number field found");
                             }
-                        }
+                        }*/
                     });
                 }
                 else if (fc_exists)
@@ -4165,24 +4185,26 @@ namespace NCC.PRZTools
                 await QueuedTask.Run(() =>
                 {
                     // Use the Planning Units Feature Class
-                    var tryget_pufc = GetFC_Project(PRZC.c_FC_PLANNING_UNITS);
+                    var tryget_puras = GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
 
                     // Build query filter
                     QueryFilter queryFilter = new QueryFilter()
                     {
-                        SubFields = PRZC.c_FLD_FC_PU_ID
+                        SubFields = PRZC.c_FLD_RAS_PU_ID
                     };
 
-                    using (Table table = tryget_pufc.featureclass)
+                    using (RasterDataset rasterDataset = tryget_puras.rasterDataset)
+                    using (Raster raster = rasterDataset.CreateFullRaster())
+                    using (Table table = raster.GetAttributeTable())
                     using (RowCursor rowCursor = table.Search(queryFilter))
                     {
                         while (rowCursor.MoveNext())
                         {
                             using (Row row = rowCursor.Current)
                             {
-                                if (row[PRZC.c_FLD_FC_PU_ID] != null)
+                                if (row[PRZC.c_FLD_RAS_PU_ID] != null)
                                 {
-                                    int pu_id = Convert.ToInt32(row[PRZC.c_FLD_FC_PU_ID]);
+                                    int pu_id = Convert.ToInt32(row[PRZC.c_FLD_RAS_PU_ID]);
                                     if (pu_id > 0)
                                     {
                                         // only keep values > 0
@@ -4367,15 +4389,17 @@ namespace NCC.PRZTools
                 await QueuedTask.Run(() =>
                 {
                     // Use the Planning Units Feature Class
-                    var tryget_pufc = GetFC_Project(PRZC.c_FC_PLANNING_UNITS);
+                    var tryget_puras = GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
 
                     // Build query filter
                     QueryFilter queryFilter = new QueryFilter()
                     {
-                        SubFields = PRZC.c_FLD_FC_PU_ID + "," + PRZC.c_FLD_FC_PU_NATGRID_CELL_NUMBER
+                        SubFields = PRZC.c_FLD_RAS_PU_ID + "," + PRZC.c_FLD_RAS_PU_NATGRID_CELL_NUMBER
                     };
 
-                    using (Table table = tryget_pufc.featureclass)
+                    using (RasterDataset rasterDataset = tryget_puras.rasterDataset)
+                    using (Raster raster = rasterDataset.CreateFullRaster())
+                    using (Table table = raster.GetAttributeTable())
                     using (RowCursor rowCursor = table.Search(queryFilter))
                     {
                         while (rowCursor.MoveNext())
@@ -4383,10 +4407,10 @@ namespace NCC.PRZTools
                             using (Row row = rowCursor.Current)
                             {
                                 // both columns must have a value
-                                if (row[PRZC.c_FLD_FC_PU_NATGRID_CELL_NUMBER] != null & row[PRZC.c_FLD_FC_PU_ID] != null)
+                                if (row[PRZC.c_FLD_RAS_PU_NATGRID_CELL_NUMBER] != null & row[PRZC.c_FLD_RAS_PU_ID] != null)
                                 {
-                                    long cell_number = Convert.ToInt64(row[PRZC.c_FLD_FC_PU_NATGRID_CELL_NUMBER]);
-                                    int pu_id = Convert.ToInt32(row[PRZC.c_FLD_FC_PU_ID]);
+                                    long cell_number = Convert.ToInt64(row[PRZC.c_FLD_RAS_PU_NATGRID_CELL_NUMBER]);
+                                    int pu_id = Convert.ToInt32(row[PRZC.c_FLD_RAS_PU_ID]);
 
                                     if (cell_number > 0 & pu_id > 0 & !DICT_CN_PUID.ContainsKey(cell_number))
                                     {

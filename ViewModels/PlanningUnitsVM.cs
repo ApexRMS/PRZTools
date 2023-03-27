@@ -1929,7 +1929,7 @@ namespace NCC.PRZTools
                 {
                     // Get Extent
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving study area extent from national grid..."), true, ++val);
-                    var gridInfo = await NationalGrid.GetNatGridBoundsFromStudyArea(SA_poly_buffer, dimension);
+                    var gridInfo = await NationalGrid.GetNatGridBoundsFromStudyArea(SA_poly_buffer, dimension); // TODO: why is this slow for large areas?
                     if (!gridInfo.success)
                     {
                         PRZH.UpdateProgress(PM, PRZH.WriteLog($"Unable to retrieve national grid extent.\n\nMessage: {gridInfo.message}", LogMessageType.ERROR), true, ++val);
@@ -2013,8 +2013,9 @@ namespace NCC.PRZTools
 
                 PRZH.CheckForCancellation(token);
 
+                // TODO: Remove if unneeded
                 // Create "Accelerated" Buffer
-                Polygon speedy_buffer = (Polygon)GeometryEngine.Instance.AccelerateForRelationalOperations(SA_poly_buffer);
+                //Polygon speedy_buffer = (Polygon)GeometryEngine.Instance.AccelerateForRelationalOperations(SA_poly_buffer);
 
                 // Create dictionary of pu ids and associated national grid cell numbers
                 Dictionary<int, long> DICT_PUID_and_cellnums = new Dictionary<int, long>();
@@ -2040,8 +2041,8 @@ namespace NCC.PRZTools
                         double origin_UL_y = extent.YMax;
 
                         // Define the pixel block dimensions for the raster cursor
-                        int block_height = 500;
-                        int block_width = colcount;
+                        int block_height = (int) Math.Max(2500000 / colcount, 1); // Limit block size while ensuring blocks span width
+                        int block_width = colcount; 
                         int block_counter = 0;
 
                         // Start the ID numbering at 1
@@ -2082,29 +2083,23 @@ namespace NCC.PRZTools
                                             double pixel_XMin = origin_UL_x + (pixelBlock_offset_x * cell_size) + (c * cell_size);
                                             double pixel_XMax = pixel_XMin + cell_size;
 
-                                            // Build the extent of the current pixel
-                                            Envelope env = EnvelopeBuilder.CreateEnvelope(pixel_XMin, pixel_YMin, pixel_XMax, pixel_YMax, OutputSR);
+                                            // TODO: Currently calculating CN for all cells, could be more efficient
+                                            // set the pixel value to a new pu id
+                                            pixelBlock_array.SetValue(pu_id, c, r);
 
-                                            // Check pixel extent for intersection with speedy buffer
-                                            if (GeometryEngine.Instance.Intersects(speedy_buffer, env))
+                                            if (is_nat)
                                             {
-                                                // set the pixel value to a new pu id
-                                                pixelBlock_array.SetValue(pu_id, c, r);
+                                                var cn = NationalGrid.GetCellNumberFromULXY(Convert.ToInt32(pixel_XMin), Convert.ToInt32(pixel_YMax), dimension);
 
-                                                if (is_nat)
+                                                if (cn.success)
                                                 {
-                                                    var cn = NationalGrid.GetCellNumberFromULXY(Convert.ToInt32(pixel_XMin), Convert.ToInt32(pixel_YMax), dimension);
-
-                                                    if (cn.success)
-                                                    {
-                                                        int puid = Convert.ToInt32(pu_id);  // possible overflow exception, except my planning unit grids will never go over int32 max value.
-                                                        DICT_PUID_and_cellnums.Add(puid, cn.cell_number);
-                                                    }
+                                                    int puid = Convert.ToInt32(pu_id);  // possible overflow exception, except my planning unit grids will never go over int32 max value.
+                                                    DICT_PUID_and_cellnums.Add(puid, cn.cell_number);
                                                 }
-
-                                                // don't forget to increment me!
-                                                pu_id++;
                                             }
+
+                                            // don't forget to increment me!
+                                            pu_id++;
                                         }
                                     }
 
@@ -2128,24 +2123,23 @@ namespace NCC.PRZTools
 
                     PRZH.CheckForCancellation(token);
 
-                    // Convert zero values to NoData
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Converting zeros to NoData..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(PRZC.c_RAS_TEMP_3, PRZC.c_RAS_TEMP_3, PRZC.c_RAS_PLANNING_UNITS, "VALUE = 0");
+                    // Mask by buffered study area
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Masking planning unit raster..."), true, ++val);
+                    toolParams = Geoprocessing.MakeValueArray(PRZC.c_RAS_TEMP_3, PRZC.c_FC_STUDY_AREA_MAIN_BUFFERED, PRZC.c_RAS_PLANNING_UNITS);
                     toolEnvs = Geoprocessing.MakeEnvironmentArray(
                         workspace: gdbpath,
                         overwriteoutput: true,
-                        outputCoordinateSystem: OutputSR,
-                        cellSize: cell_size);
-                    toolOutput = await PRZH.RunGPTool("SetNull_sa", toolParams, toolEnvs, toolFlags_GP);
+                        outputCoordinateSystem: OutputSR);
+                    toolOutput = await PRZH.RunGPTool("ExtractByMask_sa", toolParams, toolEnvs, toolFlags_GP);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error converting zeros to NoData.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error converting zeros to NoData.");
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error masking the {PRZC.c_RAS_PLANNING_UNITS} raster dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        ProMsgBox.Show($"Error copying the {PRZC.c_RAS_PLANNING_UNITS} raster dataset.");
                         return;
                     }
                     else
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"NoData values written successfully."), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Raster dataset copied successfully."), true, ++val);
                     }
 
                     PRZH.CheckForCancellation(token);
@@ -2239,8 +2233,9 @@ namespace NCC.PRZTools
                 string fldPUAreaAC = PRZC.c_FLD_RAS_PU_AREA_AC + " DOUBLE 'Acres' # 0 #;";
                 string fldPUAreaHA = PRZC.c_FLD_RAS_PU_AREA_HA + " DOUBLE 'Hectares' # 0 #;";
                 string fldPUAreaKM = PRZC.c_FLD_RAS_PU_AREA_KM2 + " DOUBLE 'Square km' # 0 #;";
+                string fldPUBID = PRZC.c_FLD_RAS_PU_BOUNDARY_ID + " LONG 'Boundary ID' # 0 #;";
 
-                string flds = fldPUID + (is_nat ? fldNatGridCellNum : "") + fldPUAreaM + fldPUAreaAC + fldPUAreaHA + fldPUAreaKM;
+                string flds = fldPUID + (is_nat ? fldNatGridCellNum : "") + fldPUAreaM + fldPUAreaAC + fldPUAreaHA + fldPUAreaKM + fldPUBID;
 
                 PRZH.UpdateProgress(PM, PRZH.WriteLog($"Adding fields to {PRZC.c_RAS_PLANNING_UNITS} raster attribute table..."), true, ++val);
                 toolParams = Geoprocessing.MakeValueArray(PRZC.c_RAS_PLANNING_UNITS, flds);
@@ -2269,6 +2264,7 @@ namespace NCC.PRZTools
                     double area_ac = area_m2 * PRZC.c_CONVERT_M2_TO_AC;
                     double area_ha = area_m2 * PRZC.c_CONVERT_M2_TO_HA;
                     double area_km2 = area_m2 * PRZC.c_CONVERT_M2_TO_KM2;
+                    long boundary_id = 0;
 
                     var tryget_gdb = PRZH.GetGDB_Project();
 
@@ -2291,6 +2287,7 @@ namespace NCC.PRZTools
                                     row[PRZC.c_FLD_RAS_PU_AREA_AC] = area_ac;
                                     row[PRZC.c_FLD_RAS_PU_AREA_HA] = area_ha;
                                     row[PRZC.c_FLD_RAS_PU_AREA_KM2] = area_km2;
+                                    row[PRZC.c_FLD_RAS_PU_BOUNDARY_ID] = boundary_id++;
 
                                     if (is_nat && DICT_PUID_and_cellnums.ContainsKey(pu_id))
                                     {
@@ -2345,6 +2342,7 @@ namespace NCC.PRZTools
 
                 #endregion
 
+                /*
                 #region CREATE FEATURE CLASS
 
                 // Convert Raster to Polygon FC
@@ -2523,7 +2521,7 @@ namespace NCC.PRZTools
                 }
 
                 #endregion
-
+*/
                 #endregion
 
                 PRZH.CheckForCancellation(token);
