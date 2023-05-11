@@ -568,7 +568,7 @@ namespace NCC.PRZTools
                     // Ensure a rooted path
                     if (!Path.IsPathRooted(gdbpath))
                     {
-                        return (false, GeoDBType.Unknown, $"Path is not rooted: {gdbpath}");
+                        return (false, GeoDBType.Unknown, $"Path is not rooted: '{gdbpath}'.");
                     }
 
                     // Create the Uri object
@@ -580,7 +580,7 @@ namespace NCC.PRZTools
                     }
                     catch
                     {
-                        return (false, GeoDBType.Unknown, $"Unable to create Uri from path: {gdbpath}");
+                        return (false, GeoDBType.Unknown, $"Unable to create Uri from path: '{gdbpath}'.");
                     }
 
                     // Determine if path is file geodatabase (.gdb) or database connection file (.sde)
@@ -595,7 +595,7 @@ namespace NCC.PRZTools
                         }
                         catch
                         {
-                            return (false, GeoDBType.Unknown, $"Unable to create file geodatabase connection path from path: {gdbpath}");
+                            return (false, GeoDBType.Unknown, $"Unable to create file geodatabase connection path from path: '{gdbpath}'.");
                         }
 
                         // Try to open the connection
@@ -605,7 +605,7 @@ namespace NCC.PRZTools
                         }
                         catch
                         {
-                            return (false, GeoDBType.Unknown, $"File geodatabase could not be opened from path: {gdbpath}");
+                            return (false, GeoDBType.Unknown, $"File geodatabase could not be opened from path: '{gdbpath}'.");
                         }
 
                         // If I get to this point, the file gdb exists and was successfully opened
@@ -622,7 +622,7 @@ namespace NCC.PRZTools
                         }
                         catch
                         {
-                            return (false, GeoDBType.Unknown, $"Unable to create database connection file from path: {gdbpath}");
+                            return (false, GeoDBType.Unknown, $"Unable to create database connection file from path: '{gdbpath}'.");
                         }
 
                         // try to open the connection
@@ -632,7 +632,7 @@ namespace NCC.PRZTools
                         }
                         catch
                         {
-                            return (false, GeoDBType.Unknown, $"Enterprise geodatabase could not be opened from path: {gdbpath}");
+                            return (false, GeoDBType.Unknown, $"Enterprise geodatabase could not be opened from path: '{gdbpath}'.");
                         }
 
                         // If I get to this point, the enterprise geodatabase exists and was successfully opened
@@ -641,7 +641,7 @@ namespace NCC.PRZTools
                     else
                     {
                         // something else, weird!
-                        return (false, GeoDBType.Unknown, $"unable to process database path: {gdbpath}");
+                        return (false, GeoDBType.Unknown, $"unable to process database path: '{gdbpath}'.");
                     }
                 });
 
@@ -1304,13 +1304,13 @@ namespace NCC.PRZTools
                 // Ensure a rooted path
                 if (!Path.IsPathRooted(gdbpath))
                 {
-                    return (false, null, $"Path is not rooted: {gdbpath}");
+                    return (false, null, $"Path is not rooted: '{gdbpath}'.");
                 }
 
                 // Ensure the path is an existing directory
                 if (!Directory.Exists(gdbpath))
                 {
-                    return (false, null, $"Path is not a valid folder path.\n{gdbpath}");
+                    return (false, null, $"Path is not a valid folder path.\n'{gdbpath}'.");
                 }
 
                 // Create the Uri object
@@ -1322,7 +1322,7 @@ namespace NCC.PRZTools
                 }
                 catch
                 {
-                    return (false, null, $"Unable to create Uri from path: {gdbpath}");
+                    return (false, null, $"Unable to create Uri from path: '{gdbpath}'.");
                 }
 
                 // Create the Connection Path object
@@ -1334,7 +1334,7 @@ namespace NCC.PRZTools
                 }
                 catch
                 {
-                    return (false, null, $"Unable to create file geodatabase connection path from path: {gdbpath}");
+                    return (false, null, $"Unable to create file geodatabase connection path from path: '{gdbpath}'.");
                 }
 
                 // Create the Geodatabase object
@@ -5537,7 +5537,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting relationship class(es). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting relationship class(es). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting relationship class(es).");
                     }
                     else
@@ -5555,7 +5555,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting feature dataset(s). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting feature dataset(s). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting feature dataset(s).");
                     }
                     else
@@ -5573,7 +5573,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting raster dataset(s). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting raster dataset(s). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting raster dataset(s).");
                     }
                     else
@@ -5591,7 +5591,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting feature class(es). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting feature class(es). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting feature class(es).");
                     }
                     else
@@ -5609,7 +5609,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting table(s). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting table(s). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting table(s).");
                     }
                     else
@@ -5635,7 +5635,7 @@ namespace NCC.PRZTools
                             toolOutput = await RunGPTool("DeleteDomain_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                             if (toolOutput == null)
                             {
-                                WriteLog($"Error deleting {domainName} domain. GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                                WriteLog($"Error deleting {domainName} domain. GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                                 return (false, $"Error deleting {domainName} domain.");
                             }
                             else
