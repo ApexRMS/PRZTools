@@ -746,6 +746,15 @@ namespace NCC.PRZTools
                 }
                 List<NatElement> elements = elem_outcome.elements;
 
+                var try_setup_table_format = await PRZH.SetElementTableNamingFormat((elements ?? new List<NatElement>()).Count > 0 ? elements[0].ElementID : -1);
+
+                if(!try_setup_table_format.success)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Unable to detect the format of element presence table names." + Environment.NewLine + $"{try_setup_table_format.message}", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show("Error while preparing to process element tables." + Environment.NewLine + $"{try_setup_table_format.message}");
+                    return (false, "Error while preparing to process element tables.");
+                }
+
                 PRZH.CheckForCancellation(token);
 
                 #endregion
@@ -807,7 +816,7 @@ namespace NCC.PRZTools
 
                     // Create the table
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Creating the {element.ElementTable} table..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(gdbpath, element.ElementTable, "", "", "Element " + element.ElementID.ToString("D5"));
+                    toolParams = Geoprocessing.MakeValueArray(gdbpath, element.ElementTable, "", "", "Element " + element.ElementID.ToString(PRZH.CurrentGeodatabaseElementTableNameFormat));
                     toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
                     toolOutput = await PRZH.RunGPTool("CreateTable_management", toolParams, toolEnvs, toolFlags_GP);
                     if (toolOutput == null)

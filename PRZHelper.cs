@@ -27,6 +27,8 @@ namespace NCC.PRZTools
 {
     public static class PRZHelper
     {
+        public static string CurrentGeodatabaseElementTableNameFormat = "D5";
+
         #region LOGGING AND NOTIFICATIONS
 
         // Write to log
@@ -2293,6 +2295,27 @@ namespace NCC.PRZTools
             }
         }
 
+        public static async Task<(bool success, string message)> SetElementTableNamingFormat(int element_id)
+        {
+            try
+            {
+                if ((await TableExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D5"))).exists)
+                {
+                    CurrentGeodatabaseElementTableNameFormat = "D5";
+                }
+                else if ((await TableExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D6"))).exists)
+                {
+                    CurrentGeodatabaseElementTableNameFormat = "D6";
+                }
+
+                return (true, null);
+            } catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return (false, ex.Message);
+            }
+        }
+
         #endregion
 
         #endregion
@@ -2310,13 +2333,13 @@ namespace NCC.PRZTools
         {
             try
             {
-                if (element_id > 99999 || element_id < 1)
+                if (element_id > 999999 || element_id < 1)
                 {
-                    throw new Exception($"Element ID {element_id} is out of range (1 to 99999)");
+                    throw new Exception($"Element ID {element_id} is out of range (1 to 999999)");
                 }
                 else
                 {
-                    return (true, PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D5"), "success");
+                    return (true, PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString(CurrentGeodatabaseElementTableNameFormat), "success");
                 }
             }
             catch (Exception ex)
@@ -2822,13 +2845,13 @@ namespace NCC.PRZTools
         {
             try
             {
-                if (element_id > 99999 || element_id < 1)
+                if (element_id > 999999 || element_id < 1)
                 {
-                    throw new Exception($"Element ID {element_id} is out of range (1 to 99999)");
+                    throw new Exception($"Element ID {element_id} is out of range (1 to 999999)");
                 }
                 else
                 {
-                    return (true, PRZC.c_TABLE_REGPRJ_PREFIX_ELEMENT + element_id.ToString("D5"), "success");
+                    return (true, PRZC.c_TABLE_REGPRJ_PREFIX_ELEMENT + element_id.ToString(CurrentGeodatabaseElementTableNameFormat), "success");
                 }
             }
             catch (Exception ex)
@@ -3338,17 +3361,11 @@ namespace NCC.PRZTools
 
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    return (false, value, "Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygettab = GetNationalElementTableName(element_id);
                 if (!trygettab.success)
                 {
-                    return (false, value, "Unable to retrieve element table name");
+                    return (false, value, trygettab.message);
                 }
 
                 string table_name = trygettab.table_name;
@@ -3444,18 +3461,12 @@ namespace NCC.PRZTools
 
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    return (false, value, "Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetNationalElementTableName(element_id);
 
                 if (!trygetname.success)
                 {
-                    return (false, value, "Unable to retrieve element table name");
+                    return (false, value, trygetname.message);
                 }
 
                 string table_name = trygetname.table_name;
@@ -3559,18 +3570,12 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    return (false, null, "Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetNationalElementTableName(element_id);
 
                 if (!trygetname.success)
                 {
-                    return (false, null, "Unable to retrieve element table name");
+                    return (false, null, trygetname.message);
                 }
 
                 string table_name = trygetname.table_name;
@@ -3637,18 +3642,12 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    return (false, null, "Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetNationalElementTableName(element_id);
 
                 if (!trygetname.success)
                 {
-                    return (false, null, "Unable to retrieve element table name");
+                    return (false, null, trygetname.message);
                 }
 
                 string table_name = trygetname.table_name;
@@ -3745,17 +3744,11 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    throw new Exception("Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetNationalElementTableName(element_id);
                 if (!trygetname.success)
                 {
-                    throw new Exception("Unable to retrieve element table name");
+                    throw new Exception(trygetname.message);
                 }
                 string table_name = trygetname.table_name;  // unqualified table name
 
@@ -3832,18 +3825,12 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    throw new Exception("Element ID out of range (1-99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetRegionalElementTableName(element_id);
 
                 if (!trygetname.success)
                 {
-                    throw new Exception("Unable to retrieve regional element table name.");
+                    throw new Exception(trygetname.message);
                 }
 
                 string table_name = trygetname.table_name;
@@ -3910,18 +3897,12 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    throw new Exception("Element ID out of range (1-99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetRegionalElementTableName(element_id);
 
                 if (!trygetname.success)
                 {
-                    throw new Exception("Unable to retrieve regional element table name.");
+                    throw new Exception(trygetname.message);
                 }
 
                 string table_name = trygetname.table_name;
