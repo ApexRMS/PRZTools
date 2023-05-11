@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
+using ArcGIS.Core.Data;
 using ArcGIS.Core.Geometry;
 using ProMsgBox = ArcGIS.Desktop.Framework.Dialogs.MessageBox;
 using PRZH = NCC.PRZTools.PRZHelper;
@@ -59,6 +61,13 @@ namespace NCC.PRZTools
         public const int c_NATGRID_COLUMNS_DIM3 = 5700;
         public const int c_NATGRID_COLUMNS_DIM4 = 0;
         public const int c_NATGRID_COLUMNS_DIM5 = 0;
+
+        // Tiling
+        public const int c_NATGRID_TILE_ROW_HEIGHT = 500;
+        public const int c_NATGRID_TILE_COL_WIDTH = 500;
+
+        public const int c_NATGRID_TILE_ROW_COUNT = 10; // TODO: Replace with function when other grids are supported
+        public const int c_NATGRID_TILE_COLS_COUNT = 12;
 
         #endregion
 
@@ -214,11 +223,11 @@ namespace NCC.PRZTools
                     return (false, null, "Geometry is not of type envelope or polygon", 0, 0);
                 }
 
-                // Simplify the geometry
+/*                // Simplify the geometry
                 if (!GeometryEngine.Instance.IsSimpleAsFeature(geom))
                 {
                     geom = GeometryEngine.Instance.SimplifyAsFeature(geom);
-                }
+                }*/
 
                 // Project the geometry if required
                 SpatialReference geomSR = geom.SpatialReference;
@@ -306,6 +315,115 @@ namespace NCC.PRZTools
                 ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
                 return (false, null, ex.Message, 0, 0);
             }
+        }
+
+        public static (bool success, HashSet<int> tiles, string message) GetTilesFromExtent(Envelope extent, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
+        {
+            try
+            {
+                HashSet<int> tiles = new HashSet<int>();
+                int side_length = 0;
+
+                switch (dimension)
+                {
+                    case NationalGridDimension.SideLength_1m:
+                        side_length = 1;
+                        break;
+                    case NationalGridDimension.SideLength_10m:
+                        side_length = 10;
+                        break;
+                    case NationalGridDimension.SideLength_100m:
+                        side_length = 100;
+                        break;
+                    case NationalGridDimension.SideLength_1000m:
+                        side_length = 1000;
+                        break;
+                    case NationalGridDimension.SideLength_10000m:
+                        side_length = 10000;
+                        break;
+                    case NationalGridDimension.SideLength_100000m:
+                        side_length = 100000;
+                        break;
+                    default:
+                        throw new Exception($"invalid gridDimension parameter supplied");
+                }
+
+                // Find extent in tile units
+                int col_left = ((((int)extent.XMin - c_NATGRID_ENV_XMIN) / side_length) + 1) / c_NATGRID_TILE_COL_WIDTH;
+                int col_right = ((((int)extent.XMax - c_NATGRID_ENV_XMIN) / side_length) + 1) / c_NATGRID_TILE_COL_WIDTH;
+                int row_top = (((c_NATGRID_ENV_YMAX - (int)extent.YMax) / side_length) + 1) / c_NATGRID_TILE_ROW_HEIGHT;
+                int row_bottom = (((c_NATGRID_ENV_YMAX - (int)extent.YMin) / side_length) + 1) / c_NATGRID_TILE_ROW_HEIGHT;
+
+                // Add 1-indexed tile ids to list of intersecting tiles
+                for(int row = row_top; row <= row_bottom; row++)
+                {
+                    for(int col = col_left; col <= col_right; col++)
+                    {
+                        tiles.Add(row * c_NATGRID_TILE_COLS_COUNT + col + 1);
+                    }
+                }
+
+
+                return (true, tiles, "success");
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return (false, null, $"Error identifying national grid tiles intersecting study are. Message={ex.Message}");
+            }
+        }
+
+        public static Dictionary<int, HashSet<long>> GetTilesFromCells(Dictionary<long, double> cells, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
+        {
+            HashSet<long> cell_ids = new HashSet<long>(cells.Keys);
+            return GetTilesFromCells(cell_ids, dimension);
+        }
+        public static Dictionary<int, HashSet<long>> GetTilesFromCells(HashSet<long> cells, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
+        {
+            int colcount = 0;
+
+            switch (dimension)
+            {
+                case NationalGridDimension.SideLength_1m:
+                    colcount = c_NATGRID_COLUMNS_DIM0;
+                    break;
+                case NationalGridDimension.SideLength_10m:
+                    colcount = c_NATGRID_COLUMNS_DIM1;
+                    break;
+                case NationalGridDimension.SideLength_100m:
+                    colcount = c_NATGRID_COLUMNS_DIM2;
+                    break;
+                case NationalGridDimension.SideLength_1000m:
+                    colcount = c_NATGRID_COLUMNS_DIM3;
+                    break;
+                case NationalGridDimension.SideLength_10000m:
+                    colcount = c_NATGRID_COLUMNS_DIM4;
+                    break;
+                case NationalGridDimension.SideLength_100000m:
+                    colcount = c_NATGRID_COLUMNS_DIM5;
+                    break;
+                default:
+                    throw new Exception($"invalid dimension parameter supplied: {dimension}");
+            }
+
+            Dictionary<int, HashSet<long>> tiles = new Dictionary<int, HashSet<long>>();
+
+            foreach (long cn in cells) 
+            {
+                // Convert cell number to tile
+                int row = (int)(cn / colcount) / c_NATGRID_TILE_ROW_HEIGHT;
+                int col = (int)(cn % colcount) / c_NATGRID_TILE_COL_WIDTH;
+                int tile = row * c_NATGRID_TILE_COLS_COUNT + col + 1; // Note tile numbers are 1-indexed
+
+                // Update dictionary of tiles and corresponding cell numbers
+                if(!tiles.ContainsKey(tile))
+                {
+                    tiles.Add(tile, new HashSet<long>());
+                }
+                tiles[tile].Add(cn);
+            }
+
+            return tiles;
         }
 
         #endregion
