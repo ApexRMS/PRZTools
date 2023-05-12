@@ -42,7 +42,7 @@
       <Value Profile="(Default)">MAP</Value>
     </Setting>
     <Setting Name="DEFAULT_NATGRID_DIMENSION" Type="System.String" Scope="User">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)">3</Value>
     </Setting>
     <Setting Name="DEFAULT_PU_NATGRID_USE_RASTER_FORMAT" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
