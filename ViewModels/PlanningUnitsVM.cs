@@ -1938,7 +1938,7 @@ namespace NCC.PRZTools
                 {
                     // Get Extent
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving study area extent from national grid..."), true, ++val);
-                    var gridInfo = await NationalGrid.GetNatGridBoundsFromStudyArea(SA_poly_buffer, dimension); // TODO: why is this slow for large areas?
+                    var gridInfo = await NationalGrid.GetNatGridBoundsFromStudyArea(SA_poly_buffer, dimension);
                     if (!gridInfo.success)
                     {
                         PRZH.UpdateProgress(PM, PRZH.WriteLog($"Unable to retrieve national grid extent.\n\nMessage: {gridInfo.message}", LogMessageType.ERROR), true, ++val);

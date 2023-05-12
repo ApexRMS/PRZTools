@@ -1286,7 +1286,7 @@ namespace NCC.PRZTools
                 bool fc_exists = (await FCExists_Project(PRZC.c_FC_PLANNING_UNITS)).exists;
                 bool ras_exists = (await RasterExists_Project(PRZC.c_RAS_PLANNING_UNITS)).exists;
 
-                if(ras_exists) // if (fc_exists & ras_exists) // TODO: Clean up after testing without fc
+                if(ras_exists)
                 {
                     // Determine if dataset is national-enabled or not
                     return await QueuedTask.Run(() =>
@@ -4551,6 +4551,76 @@ namespace NCC.PRZTools
                 });
 
                 return (true, DICT_PUID_CN, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Retrieve a dictionary of planning unit ids and associated boundary file ids from the
+        /// project geodatabase.  Silent errors.
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<(bool success, Dictionary<int, int> dict, string message)> GetPUIDsAndBUIDs()
+        {
+            try
+            {
+                // Project GDB existence
+                if (!(await GDBExists_Project()).exists)
+                {
+                    throw new Exception("Project GDB not found.");
+                }
+
+                // Planning Units existence
+                var tryget_pudata = await PUDataExists();
+                if (!tryget_pudata.exists)
+                {
+                    throw new Exception("Planning Units not found.");
+                }
+
+                // Create the dictionary
+                Dictionary<int, int> DICT_PUID_BUID = new Dictionary<int, int>();
+
+                // Populate the dictionary
+                await QueuedTask.Run(() =>
+                {
+                    // Use the Planning Units Feature Class
+                    var tryget_puras = GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
+
+                    // Build query filter
+                    QueryFilter queryFilter = new QueryFilter()
+                    {
+                        SubFields = PRZC.c_FLD_RAS_PU_ID + "," + PRZC.c_FLD_RAS_PU_BOUNDARY_ID
+                    };
+
+                    using (RasterDataset rasterDataset = tryget_puras.rasterDataset)
+                    using (Raster raster = rasterDataset.CreateFullRaster())
+                    using (Table table = raster.GetAttributeTable())
+                    using (RowCursor rowCursor = table.Search(queryFilter))
+                    {
+                        while (rowCursor.MoveNext())
+                        {
+                            using (Row row = rowCursor.Current)
+                            {
+                                // both columns must have a value
+                                if (row[PRZC.c_FLD_RAS_PU_BOUNDARY_ID] != null & row[PRZC.c_FLD_RAS_PU_ID] != null)
+                                {
+                                    int bu_id = Convert.ToInt32(row[PRZC.c_FLD_RAS_PU_BOUNDARY_ID]);
+                                    int pu_id = Convert.ToInt32(row[PRZC.c_FLD_RAS_PU_ID]);
+
+                                    if (bu_id >= 0 & pu_id > 0 & !DICT_PUID_BUID.ContainsKey(pu_id))
+                                    {
+                                        DICT_PUID_BUID.Add(pu_id, bu_id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return (true, DICT_PUID_BUID, "success");
             }
             catch (Exception ex)
             {
@@ -7834,6 +7904,39 @@ namespace NCC.PRZTools
             {
                 ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
                 return errTuple;
+            }
+        }
+
+        public static (bool success, Dictionary<string, Dictionary<long, double>> attributes, string message) GetAllAttributes_Project()
+        {
+            try
+            {
+                // Identify files to read
+                List<string> national_element_paths = Directory.GetFiles(GetPath_ProjectNationalElementsSubfolder(), "*.bin").ToList();
+                List<string> regional_element_paths = new List<string>(); // TODO: Update to load regional data also
+
+                List<string> element_paths = Enumerable.Concat(national_element_paths, regional_element_paths).ToList();
+
+                // Initialize dictionary
+                Dictionary<string, Dictionary<long, double>> attributes = new Dictionary<string, Dictionary<long, double>>(element_paths.Count());
+
+                // Read in each file
+                foreach(string element_path in element_paths)
+                {
+                    var tryread = ReadBinary(element_path);
+                    if (!tryread.success)
+                    {
+                        return (false, null, $"Could not read element binary file. Message: {tryread.message}");
+                    }
+
+                    attributes.Add(Path.GetFileNameWithoutExtension(element_path), (Dictionary<long, double>)tryread.obj);
+                }
+
+                return (true, attributes, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, null, $"Failed to get attributes. Message={ex.Message}");
             }
         }
 

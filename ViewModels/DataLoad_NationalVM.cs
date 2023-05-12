@@ -230,10 +230,6 @@ namespace NCC.PRZTools
                     ProMsgBox.Show("This ArcGIS Pro Project has some unsaved edits.  Please save all edits before proceeding.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("ArcGIS Pro Project has no unsaved edits.  Proceeding..."), true, ++val);
-                }
 
                 // If editing is disabled, enable it temporarily (and disable again in the finally block)
                 if (edits_are_disabled)
@@ -243,10 +239,6 @@ namespace NCC.PRZTools
                         PRZH.UpdateProgress(PM, PRZH.WriteLog("Unable to enable editing for this ArcGIS Pro Project.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show("Unable to enable editing for this ArcGIS Pro Project.");
                         return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("ArcGIS Pro editing enabled."), true, ++val);
                     }
                 }
 
@@ -272,10 +264,6 @@ namespace NCC.PRZTools
                     ProMsgBox.Show($"Project Geodatabase not found at {gdbpath}.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Project Geodatabase found at {gdbpath}."), true, ++val);
-                }
 
                 // Planning Unit existence
                 var tryex_pudata = await PRZH.PUDataExists();
@@ -285,10 +273,6 @@ namespace NCC.PRZTools
                     ProMsgBox.Show($"Planning Units dataset not found.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Planning Units dataset exists."), true, ++val);
-                }
 
                 // Ensure that the Planning Unit Data is national-enabled
                 if (!tryex_pudata.national_enabled)
@@ -296,10 +280,6 @@ namespace NCC.PRZTools
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Planning Units data is not configured for national data.", LogMessageType.VALIDATION_ERROR), true, ++val);
                     ProMsgBox.Show($"Planning Units data is not configured for national data.");
                     return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Planning Units data is configured for national data."), true, ++val);
                 }
 
                 // Ensure the National db exists
@@ -311,21 +291,6 @@ namespace NCC.PRZTools
                     ProMsgBox.Show($"Valid National Geodatabase not found at {natpath}.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"National Geodatabase is OK: {natpath}"), true, ++val);
-                }
-
-                // Capture the Planning Unit Spatial Reference
-                SpatialReference PlanningUnitSR = await QueuedTask.Run(() =>
-                {
-                    var tryget_ras = PRZH.GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
-                    using (RasterDataset rasterDataset = tryget_ras.rasterDataset)
-                    using (RasterDatasetDefinition rasterDef = rasterDataset.GetDefinition())
-                    {
-                        return rasterDef.GetSpatialReference();
-                    }
-                });
 
                 // Notify users what will happen if they proceed
                 if (ProMsgBox.Show($"If you proceed, any existing National Theme and Element tables in the project geodatabase WILL BE DELETED!!\n\n" +
@@ -345,11 +310,12 @@ namespace NCC.PRZTools
                 #endregion
 
                 #region DELETE EXISTING GEODATABASE OBJECTS
+                
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting existing project tables..."), true, ++val);
 
                 // Delete the National Theme Table if present
                 if ((await PRZH.TableExists_Project(PRZC.c_TABLE_NATPRJ_THEMES)).exists)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting the {PRZC.c_TABLE_NATPRJ_THEMES} table..."), true, ++val);
                     toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_NATPRJ_THEMES);
                     toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
                     toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
@@ -359,10 +325,6 @@ namespace NCC.PRZTools
                         ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_NATPRJ_THEMES} table.");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Table deleted successfully."), true, ++val);
-                    }
                 }
 
                 PRZH.CheckForCancellation(token);
@@ -370,7 +332,6 @@ namespace NCC.PRZTools
                 // Delete the National Element table if present
                 if ((await PRZH.TableExists_Project(PRZC.c_TABLE_NATPRJ_ELEMENTS)).exists)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting the {PRZC.c_TABLE_NATPRJ_ELEMENTS} table..."), true, ++val);
                     toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_NATPRJ_ELEMENTS);
                     toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
                     toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
@@ -380,97 +341,20 @@ namespace NCC.PRZTools
                         ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_NATPRJ_ELEMENTS} table.");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Table deleted successfully."), true, ++val);
-                    }
                 }
 
-                PRZH.CheckForCancellation(token);
-
-                // Delete any national element tables
-                var tryget_tables = await PRZH.GetNationalElementTables();
-
-                if (!tryget_tables.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving list of national element tables.", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error retrieving list of national element tables.");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"{tryget_tables.tables.Count} national element tables found."), true, ++val);
-                }
-
-                if (tryget_tables.tables.Count > 0)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting {tryget_tables.tables.Count} national element tables..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(string.Join(";", tryget_tables.tables));
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                    toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the national element tables ({string.Join(";", tryget_tables.tables)}.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error deleting the national element tables.");
-                        return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"National element tables deleted successfully."), true, ++val);
-                    }
-                }
-
-                PRZH.CheckForCancellation(token);
-
-                // Delete and rebuild National FDS
-                // delete...
-                var tryex_natfds = await PRZH.FDSExists_Project(PRZC.c_FDS_NATIONAL_ELEMENTS);
-                if (tryex_natfds.exists)
-                {
-                    // delete it
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting {PRZC.c_FDS_NATIONAL_ELEMENTS} FDS..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(PRZC.c_FDS_NATIONAL_ELEMENTS);
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                    toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting {PRZC.c_FDS_NATIONAL_ELEMENTS} FDS.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error deleting {PRZC.c_FDS_NATIONAL_ELEMENTS} FDS.");
-                        return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"FDS deleted successfully."), true, ++val);
-                    }
-                }
-
-                PRZH.CheckForCancellation(token);
-
-                // (re)build!
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Creating {PRZC.c_FDS_NATIONAL_ELEMENTS} feature dataset..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(gdbpath, PRZC.c_FDS_NATIONAL_ELEMENTS, PlanningUnitSR);
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CreateFeatureDataset_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating feature dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error creating feature dataset.");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Feature dataset created."), true, ++val);
-                }
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done deleting existing project tables..."), true, ++val);
 
                 #endregion
 
                 PRZH.CheckForCancellation(token);
 
-                #region NATIONAL TABLES AND NATIONAL FEATURE CLASSES
+                #region Process National tables
 
                 // Process the national tables
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Processing national database..."), true, ++val);
+
                 var trynatdb = await ProcessNationalDbTables(token);
 
                 if (!trynatdb.success)
@@ -481,33 +365,22 @@ namespace NCC.PRZTools
                 }
                 else
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"National data loaded successfully."), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done processing national database..."), true, ++val);
                 }
 
                 PRZH.CheckForCancellation(token);
 
-                // TODO: Visualize national database data without Feature classes
-                //// Generate the National Element spatial datasets
-                //var tryspat = await GenerateSpatialDatasets(token);
-                //if (!tryspat.success)
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error generating national spatial datasets.\n{tryspat.message}", LogMessageType.ERROR), true, ++val);
-                //    ProMsgBox.Show($"Error generating national spatial datasets.\n{tryspat.message}.");
-                //    return;
-                //}
-                //else
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog($"National spatial datasets generated successfully."), true, ++val);
-                //}
-
                 #endregion
+
+                // TODO: Visualize national database data without Feature classes
 
                 PRZH.CheckForCancellation(token);
 
                 #region WRAP UP
 
+                PRZH.UpdateProgress(PM, PRZH.WriteLog("Wrapping up..."), true, ++val);
+
                 // Compact the Geodatabase
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("Compacting the Geodatabase..."), true, ++val);
                 toolParams = Geoprocessing.MakeValueArray(gdbpath);
                 toolOutput = await PRZH.RunGPTool("Compact_management", toolParams, null, toolFlags_GPRefresh);
                 if (toolOutput == null)
@@ -516,20 +389,17 @@ namespace NCC.PRZTools
                     ProMsgBox.Show("Error compacting the geodatabase.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Geodatabase compacted."), true, ++val);
-                }
 
                 PRZH.CheckForCancellation(token);
 
-                // Refresh the Map & TOC
+                // TODO: Should this be enabled by default? Could be slow. Decide after re-implementing visualizations
+/*                // Refresh the Map & TOC
                 if (!(await PRZH.RedrawPRZLayers(_map)).success)
                 {
                     PRZH.UpdateProgress(PM, PRZH.WriteLog("Error redrawing the PRZ layers.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error redrawing the PRZ layers.");
                     return;
-                }
+                }*/
 
                 // Final message
                 stopwatch.Stop();
@@ -576,13 +446,14 @@ namespace NCC.PRZTools
                 GPExecuteToolFlags toolFlags_GP = GPExecuteToolFlags.GPThread;
                 string toolOutput;
 
-                #region RETRIEVE AND PREPARE INFO FROM NATIONAL DATABASE
+                #region Initialize project tables
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Initializing project tables..."), true, ++val);
 
                 // COPY THE ELEMENT TABLE
                 string gdbpath = PRZH.GetPath_ProjectGDB();
                 string natdbpath = PRZH.GetPath_NatGDB();
 
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Copying the {PRZC.c_TABLE_NATSRC_ELEMENTS} table..."), true, ++val);
                 var q_elem = await PRZH.GetNatDBQualifiedName(PRZC.c_TABLE_NATSRC_ELEMENTS);
                 string inputelempath = Path.Combine(natdbpath, q_elem.qualified_name);
                 toolParams = Geoprocessing.MakeValueArray(inputelempath, PRZC.c_TABLE_NATPRJ_ELEMENTS, "", "");
@@ -594,15 +465,10 @@ namespace NCC.PRZTools
                     ProMsgBox.Show($"Error copying the {PRZC.c_TABLE_NATSRC_ELEMENTS} table.");
                     return (false, "table copy error.");
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Table copied successfully."), true, ++val);
-                }
 
                 PRZH.CheckForCancellation(token);
 
                 // ALTER ALIAS NAME OF ELEMENT TABLE
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("Altering table alias..."), true, ++val);
                 await QueuedTask.Run(() =>
                 {
                     var tryget_projectgdb = PRZH.GetGDB_Project();
@@ -631,7 +497,6 @@ namespace NCC.PRZTools
                 string fldElemPresence = PRZC.c_FLD_TAB_NATELEMENT_PRESENCE + $" SHORT 'Presence' # {(int)ElementPresence.Absent} '" + PRZC.c_DOMAIN_PRESENCE + "';";
                 string flds = fldElemPresence;
 
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Adding fields to the copied {PRZC.c_TABLE_NATPRJ_ELEMENTS} table..."), true, ++val);
                 toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_NATPRJ_ELEMENTS, flds);
                 toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
                 toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
@@ -641,15 +506,10 @@ namespace NCC.PRZTools
                     ProMsgBox.Show($"Error adding fields to the copied {PRZC.c_TABLE_NATPRJ_ELEMENTS} table.");
                     return (false, "field addition error.");
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Fields added successfully."), true, ++val);
-                }
 
                 PRZH.CheckForCancellation(token);
 
                 // COPY THE THEMES TABLE
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Copying the {PRZC.c_TABLE_NATSRC_THEMES} table..."), true, ++val);
                 var q_theme = await PRZH.GetNatDBQualifiedName(PRZC.c_TABLE_NATSRC_THEMES);
                 string inputthemepath = Path.Combine(natdbpath, q_theme.qualified_name);
                 toolParams = Geoprocessing.MakeValueArray(inputthemepath, PRZC.c_TABLE_NATPRJ_THEMES, "", "");
@@ -661,15 +521,10 @@ namespace NCC.PRZTools
                     ProMsgBox.Show($"Error copying the {PRZC.c_TABLE_NATSRC_THEMES} table.");
                     return (false, "table copy error.");
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Table copied successfully."), true, ++val);
-                }
 
                 PRZH.CheckForCancellation(token);
 
                 // ALTER ALIAS NAME OF THEME TABLE
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("Altering table alias..."), true, ++val);
                 await QueuedTask.Run(() =>
                 {
                     var tryget_projectgdb = PRZH.GetGDB_Project();
@@ -698,7 +553,6 @@ namespace NCC.PRZTools
                 string fldThemePresence = PRZC.c_FLD_TAB_NATTHEME_PRESENCE + $" SHORT 'Presence' # {(int)ElementPresence.Absent} '" + PRZC.c_DOMAIN_PRESENCE + "';";
                 flds = fldThemePresence;
 
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Adding fields to the copied {PRZC.c_TABLE_NATPRJ_THEMES} table..."), true, ++val);
                 toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_NATPRJ_THEMES, flds);
                 toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
                 toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
@@ -708,15 +562,18 @@ namespace NCC.PRZTools
                     ProMsgBox.Show($"Error adding fields to the copied {PRZC.c_TABLE_NATPRJ_THEMES} table.");
                     return (false, "field addition error.");
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Fields added successfully."), true, ++val);
-                }
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done initializing project tables..."), true, ++val);
+
+                #endregion
 
                 PRZH.CheckForCancellation(token);
 
+                #region RETRIEVE AND PREPARE INFO FROM NATIONAL DATABASE
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Parsing national themes and elements..."), true, ++val);
+
                 // Get the National Themes from the copied national themes table
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving national themes..."), true, ++val);
                 var theme_outcome = await PRZH.GetNationalThemes();
                 if (!theme_outcome.success)
                 {
@@ -733,7 +590,6 @@ namespace NCC.PRZTools
                 PRZH.CheckForCancellation(token);
 
                 // Get the National Elements from the copied national elements table
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving national elements..."), true, ++val);
                 var elem_outcome = await PRZH.GetNationalElements();
                 if (!elem_outcome.success)
                 {
@@ -747,7 +603,7 @@ namespace NCC.PRZTools
                 }
                 List<NatElement> elements = elem_outcome.elements;
 
-                PRZH.CheckForCancellation(token);
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done parsing national themes and elements..."), true, ++val);
 
                 #endregion
 
@@ -755,6 +611,9 @@ namespace NCC.PRZTools
 
                 #region RETRIEVE INTERSECTING ELEMENTS
 
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Finding intersecting cells in National Database..."), true, ++val);
+
+                #region Setup
                 // Construct dictionary of planning units / national grid ids
                 var outcome = await PRZH.GetCellNumbersAndPUIDs();
                 if (!outcome.success)
@@ -791,19 +650,21 @@ namespace NCC.PRZTools
                 }
                 Directory.CreateDirectory(output_elements_folder);
 
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
                 // Find intersecting cells
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Finding intersecting cells in National Database..."), true, ++val);
                 string input_elements_folder = PRZH.GetPath_NationalDatabaseElementsSubfolder();
                 int progress = 0;
                 var options = new ParallelOptions() { MaxDegreeOfParallelism = 3 };
 
-
-                Parallel.ForEach(elements, options, element =>
+                await Parallel.ForEachAsync(elements, options, async (element, token) =>
                 {
                     progress++;
-                    if (progress % 100 == 0)
+                    if (progress % 500 == 0)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Processing national element {progress}/{elements.Count()}."), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done processing {progress} / {elements.Count()} national elements."), true, ++val);
                     }
 
                     // Determine which if any tiles overlap
@@ -846,15 +707,25 @@ namespace NCC.PRZTools
                     }
                 });
 
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done finding intersecting cells..."), true, ++val);
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
+                #region Update the element presence field
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Updating project tables..."), true, ++val);
+
                 // Identify elements that are present by id
-                foreach(string f in Directory.GetFiles(output_elements_folder))
+                foreach (string f in Directory.GetFiles(output_elements_folder))
                 {
                     int element_id = Convert.ToInt32(Path.GetFileNameWithoutExtension(f).Substring(1));
                     elements_present.Add(element_id);
                 }
 
                 // Update the table
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Updating the {PRZC.c_TABLE_NATPRJ_ELEMENTS} table {PRZC.c_FLD_TAB_NATELEMENT_PRESENCE} field..."), true, ++val);
                 await QueuedTask.Run(() =>
                 {
                     var tryget_gdb = PRZH.GetGDB_Project();
@@ -897,7 +768,6 @@ namespace NCC.PRZTools
                 #region UPDATE THE LOCAL THEME TABLE PRESENCE FIELD
 
                 // Update the table
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Updating the {PRZC.c_TABLE_NATPRJ_THEMES} table {PRZC.c_FLD_TAB_NATTHEME_PRESENCE} field..."), true, ++val);
                 await QueuedTask.Run(() =>
                 {
                     var tryget_gdb = PRZH.GetGDB_Project();
@@ -930,12 +800,15 @@ namespace NCC.PRZTools
                     }
                 });
 
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done updating project tables..."), true, ++val);
+
                 #endregion
 
                 PRZH.CheckForCancellation(token);
 
                 #region UPDATE REGIONAL THEME DOMAIN
 
+                // TODO: Figure out if this is still needed
 /*                Dictionary<int, string> national_values = new Dictionary<int, string>();
                 foreach (NatTheme theme in themes)
                 {
@@ -956,7 +829,6 @@ namespace NCC.PRZTools
 
                 #endregion
 
-                // we're done here
                 return (true, "success");
             }
             catch (OperationCanceledException cancelex)

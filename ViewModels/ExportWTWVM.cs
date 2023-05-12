@@ -26,6 +26,9 @@ using PRZH = NCC.PRZTools.PRZHelper;
 using YamlDotNet.Serialization;
 using CsvHelper;
 using CsvHelper.Configuration;
+using System.Text;
+using System.Collections.Concurrent;
+using ArcGIS.Desktop.Internal.GeoProcessing;
 
 namespace NCC.PRZTools
 {
@@ -268,10 +271,6 @@ namespace NCC.PRZTools
                     ProMsgBox.Show($"Project Geodatabase not found at {gdbpath}.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Project Geodatabase found at {gdbpath}."), true, ++val);
-                }
 
                 // Ensure the ExportWTW folder exists
                 if (!PRZH.FolderExists_ExportWTW().exists)
@@ -279,10 +278,6 @@ namespace NCC.PRZTools
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"{PRZC.c_DIR_EXPORT_WTW} folder not found in project workspace.", LogMessageType.VALIDATION_ERROR), true, ++val);
                     ProMsgBox.Show($"{PRZC.c_DIR_EXPORT_WTW} folder not found in project workspace.");
                     return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"{PRZC.c_DIR_EXPORT_WTW} folder found."), true, ++val);
                 }
 
                 // Ensure the Planning Units data exists
@@ -294,17 +289,6 @@ namespace NCC.PRZTools
                     return;
                 }
 
-                // Get the Planning Unit Spatial Reference
-                SpatialReference PlanningUnitSR = await QueuedTask.Run(() =>
-                {
-                    var tryget_ras = PRZH.GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
-                    using (RasterDataset rasterDataset = tryget_ras.rasterDataset)
-                    using (RasterDatasetDefinition rasterDef = rasterDataset.GetDefinition())
-                    {
-                        return rasterDef.GetSpatialReference();
-                    }
-                });
-
                 #region VALIDATE NATIONAL AND REGIONAL ELEMENT DATA
 
                 // Check for national element tables
@@ -315,7 +299,7 @@ namespace NCC.PRZTools
                 {
                     // there are no national or regional element tables, stop!
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"No national or regional elements intersect study area.  Unable to proceed.", LogMessageType.VALIDATION_ERROR), true, ++val);
-                    ProMsgBox.Show($"No national or regional elements intersect study area.  Unable to proceed.");
+                    ProMsgBox.Show($"No national or regional elements intersect study area.  Please expand your study area or ensure your national or regional databases include data for your study area.");
                     return;
                 }
                 else
@@ -380,22 +364,8 @@ namespace NCC.PRZTools
 
                 #region EXPORT SPATIAL DATA
 
-                // Export the Feature Class to Shapefile
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Exporting Spatial Data: Shapefile"), true, ++val);
-                /*var tryexport_feature = await ExportFeatureClassToShapefile(token);
-                if (!tryexport_feature.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error exporting {PRZC.c_FC_PLANNING_UNITS} feature class to shapefile.\n{tryexport_feature.message}", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error exporting {PRZC.c_FC_PLANNING_UNITS} feature class to shapefile.\n{tryexport_feature.message}");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Export complete."), true, ++val);
-                }*/
-
                 // Export the raster to TIFF
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Exporting Spatial Data: TIFF"), true, ++val);
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Exporting raster spatial data."), true, ++val);
                 var tryexport_raster = await ExportRasterToTiff(token);
                 if (!tryexport_raster.success)
                 {
@@ -405,46 +375,54 @@ namespace NCC.PRZTools
                 }
                 else
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Export complete."), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done exporting spatial data."), true, ++val);
                 }
 
                 #endregion
 
                 PRZH.CheckForCancellation(token);
 
-                #region Build Boundary Lengths Table
-                var trybuild = await BuildBoundaryLengthsTable(token);
-                if (!trybuild.success)
+                #region Build and Export Boundary Lengths Table
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Building and exporting boundary table"), true, ++val);
+                var trybuild_boundary = await BuildBoundaryLengthsTable(token);
+                if (!trybuild_boundary.success)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building the boundary lengths table\n{trybuild.message}", LogMessageType.VALIDATION_ERROR), true, ++val);
-                    ProMsgBox.Show($"error building the boundary lengths table.\n{trybuild.message}");
-                    return;
-                }
-
-                #endregion
-
-                PRZH.CheckForCancellation(token);
-
-                #region GET PUID LIST
-
-                // Get the Planning Unit IDs
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Getting Planning Unit IDs..."), true, ++val);
-                var tryget_puids = await PRZH.GetPUIDList();
-                if (!tryget_puids.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving Planning Unit IDs.\n{tryget_puids.message}", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error retrieving Planning Unit IDs\n{tryget_puids.message}");
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building the boundary lengths table\n{trybuild_boundary.message}", LogMessageType.VALIDATION_ERROR), true, ++val);
+                    ProMsgBox.Show($"error building the boundary lengths table.\n{trybuild_boundary.message}");
                     return;
                 }
                 else
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"{tryget_puids.puids.Count} Planning Unit IDs retrieved."), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Boundary table export complete."), true, ++val);
                 }
-                List<int> PUIDs = tryget_puids.puids;
 
                 #endregion
 
                 PRZH.CheckForCancellation(token);
+
+                #region Build and Export Attribute Table
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Building and exporting attribute table"), true, ++val);
+                var trybuild_attribute = await BuildAttributeTable(token);
+                if (!trybuild_attribute.success)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building the attribute table\n{trybuild_attribute.message}", LogMessageType.VALIDATION_ERROR), true, ++val);
+                    ProMsgBox.Show($"error building the attribute table.\n{trybuild_attribute.message}");
+                    return;
+                }
+                else
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Attribute table export complete."), true, ++val);
+                }
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
+                #region Build and Export YAML File 
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Building and writing YAML file..."), true, ++val);
 
                 #region GET NATIONAL TABLE CONTENTS
 
@@ -459,7 +437,6 @@ namespace NCC.PRZTools
                 if (nattables_present > 0)
                 {
                     // Get the National Themes
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving national themes..."), true, ++val);
                     var theme_outcome = await PRZH.GetNationalThemes(ElementPresence.Present);
                     if (!theme_outcome.success)
                     {
@@ -474,7 +451,6 @@ namespace NCC.PRZTools
                     nat_themes = theme_outcome.themes;
 
                     // Get the goals
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving national {ElementType.Goal} elements..."), true, ++val);
                     var goal_outcome = await PRZH.GetNationalElements(ElementType.Goal, ElementStatus.Active, ElementPresence.Present);
                     if (!goal_outcome.success)
                     {
@@ -489,7 +465,6 @@ namespace NCC.PRZTools
                     nat_goals = goal_outcome.elements;
 
                     // Get the weights
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving national {ElementType.Weight} elements..."), true, ++val);
                     var weight_outcome = await PRZH.GetNationalElements(ElementType.Weight, ElementStatus.Active, ElementPresence.Present);
                     if (!weight_outcome.success)
                     {
@@ -504,7 +479,6 @@ namespace NCC.PRZTools
                     nat_weights = weight_outcome.elements;
 
                     // Get the includes
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving national {ElementType.Include} elements..."), true, ++val);
                     var include_outcome = await PRZH.GetNationalElements(ElementType.Include, ElementStatus.Active, ElementPresence.Present);
                     if (!include_outcome.success)
                     {
@@ -519,7 +493,6 @@ namespace NCC.PRZTools
                     nat_includes = include_outcome.elements;
 
                     // Get the excludes
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving national {ElementType.Exclude} elements..."), true, ++val);
                     var exclude_outcome = await PRZH.GetNationalElements(ElementType.Exclude, ElementStatus.Active, ElementPresence.Present);
                     if (!exclude_outcome.success)
                     {
@@ -535,6 +508,8 @@ namespace NCC.PRZTools
                 }
 
                 #endregion
+
+                PRZH.CheckForCancellation(token);
 
                 #region GET REGIONAL TABLE CONTENTS
 
@@ -563,7 +538,6 @@ namespace NCC.PRZTools
                     DICT_RegThemes = tryget_regThemes.dict;
 
                     // Get the goals
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving regional {ElementType.Goal} elements..."), true, ++val);
                     var tryget_reg_goals = await PRZH.GetRegionalElements(ElementType.Goal, ElementStatus.Active, ElementPresence.Present);
                     if (!tryget_reg_goals.success)
                     {
@@ -578,7 +552,6 @@ namespace NCC.PRZTools
                     reg_goals = tryget_reg_goals.elements;
 
                     // Get the weights
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving regional {ElementType.Weight} elements..."), true, ++val);
                     var tryget_reg_weights = await PRZH.GetRegionalElements(ElementType.Weight, ElementStatus.Active, ElementPresence.Present);
                     if (!tryget_reg_weights.success)
                     {
@@ -593,7 +566,6 @@ namespace NCC.PRZTools
                     reg_weights = tryget_reg_weights.elements;
 
                     // Get the includes
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving regional {ElementType.Include} elements..."), true, ++val);
                     var tryget_reg_includes = await PRZH.GetRegionalElements(ElementType.Include, ElementStatus.Active, ElementPresence.Present);
                     if (!tryget_reg_includes.success)
                     {
@@ -608,7 +580,6 @@ namespace NCC.PRZTools
                     reg_includes = tryget_reg_includes.elements;
 
                     // Get the excludes
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving regional {ElementType.Exclude} elements..."), true, ++val);
                     var tryget_reg_excludes = await PRZH.GetRegionalElements(ElementType.Exclude, ElementStatus.Active, ElementPresence.Present);
                     if (!tryget_reg_excludes.success)
                     {
@@ -627,654 +598,7 @@ namespace NCC.PRZTools
 
                 PRZH.CheckForCancellation(token);
 
-                #region ASSEMBLE NATIONAL ELEMENT VALUE DICTIONARIES
-
-                // Populate a unique list of active themes
-
-                // Get the Goal Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the Goals dictionary ({nat_goals.Count} goals)..."), true, ++val);
-
-                // Construct dictionary of planning units / national grid ids
-                var outcome = await PRZH.GetCellNumbersAndPUIDs();
-                if (!outcome.success)
-                {
-                    throw new Exception("Error constructing PUID dictionary, try rebuilding planning units.");
-                }
-                Dictionary<long, int> cellnumdict = outcome.dict;
-                string element_dict_folder = PRZH.GetPath_ProjectNationalElementsSubfolder();
-
-                Dictionary<int, Dictionary<int, double>> DICT_NatGoals = new Dictionary<int, Dictionary<int, double>>();
-                for (int i = 0; i < nat_goals.Count; i++)
-                {
-                    // Get the goal
-                    NatElement goal = nat_goals[i];
-
-                    // Get the values dictionary for this goal
-                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(goal.ElementID, cellnumdict, element_dict_folder);
-                    if (getvals_outcome.success)
-                    {
-                        // Store dictionary in Goals dictionary
-                        DICT_NatGoals.Add(goal.ElementID, getvals_outcome.dict);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Goal {i} (element ID {goal.ElementID}): {getvals_outcome.dict.Count} values"), true, ++val);
-                    }
-                    else
-                    {
-                        // Store null value in Goals dictionary
-                        DICT_NatGoals.Add(goal.ElementID, null);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Goal {i} (element ID {goal.ElementID}): Null dictionary (no values retrieved)"), true, ++val);
-                    }
-                }
-
-                // Get the Weight Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the Weights dictionary ({nat_weights.Count} weights)..."), true, ++val);
-                Dictionary<int, Dictionary<int, double>> DICT_NatWeights = new Dictionary<int, Dictionary<int, double>>();
-                for (int i = 0; i < nat_weights.Count; i++)
-                {
-                    // Get the weight
-                    NatElement weight = nat_weights[i];
-
-                    // Get the values dictionary for this weight
-                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(weight.ElementID, cellnumdict, element_dict_folder);
-                    if (getvals_outcome.success)
-                    {
-                        // Store dictionary in Weights dictionary
-                        DICT_NatWeights.Add(weight.ElementID, getvals_outcome.dict);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Weight {i} (element ID {weight.ElementID}): {getvals_outcome.dict.Count} values"), true, ++val);
-                    }
-                    else
-                    {
-                        // Store null value in Weights dictionary
-                        DICT_NatWeights.Add(weight.ElementID, null);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Weight {i} (element ID {weight.ElementID}): Null dictionary (no values retrieved)"), true, ++val);
-                    }
-                }
-
-                // Get the Includes Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the Includes dictionary ({nat_includes.Count} includes)..."), true, ++val);
-                Dictionary<int, Dictionary<int, double>> DICT_NatIncludes = new Dictionary<int, Dictionary<int, double>>();
-                for (int i = 0; i < nat_includes.Count; i++)
-                {
-                    // Get the include
-                    NatElement include = nat_includes[i];
-
-                    // Get the values dictionary for this include
-                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(include.ElementID, cellnumdict, element_dict_folder);
-                    if (getvals_outcome.success)
-                    {
-                        // Store dictionary in Includes dictionary
-                        DICT_NatIncludes.Add(include.ElementID, getvals_outcome.dict);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Includes {i} (element ID {include.ElementID}): {getvals_outcome.dict.Count} values"), true, ++val);
-                    }
-                    else
-                    {
-                        // Store null value in Includes dictionary
-                        DICT_NatIncludes.Add(include.ElementID, null);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Includes {i} (element ID {include.ElementID}): Null dictionary (no values retrieved)"), true, ++val);
-                    }
-                }
-
-                // Get the Excludes Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the Excludes dictionary ({nat_excludes.Count} excludes)..."), true, ++val);
-                Dictionary<int, Dictionary<int, double>> DICT_NatExcludes = new Dictionary<int, Dictionary<int, double>>();
-                for (int i = 0; i < nat_excludes.Count; i++)
-                {
-                    // Get the exclude
-                    NatElement exclude = nat_excludes[i];
-
-                    // Get the values dictionary for this exclude
-                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(exclude.ElementID, cellnumdict, element_dict_folder);
-                    if (getvals_outcome.success)
-                    {
-                        // Store dictionary in Excludes dictionary
-                        DICT_NatExcludes.Add(exclude.ElementID, getvals_outcome.dict);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Excludes {i} (element ID {exclude.ElementID}): {getvals_outcome.dict.Count} values"), true, ++val);
-                    }
-                    else
-                    {
-                        // Store null value in Excludes dictionary
-                        DICT_NatExcludes.Add(exclude.ElementID, null);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Excludes {i} (element ID {exclude.ElementID}): Null dictionary (no values retrieved)"), true, ++val);
-                    }
-                }
-
-                #endregion
-
-                PRZH.CheckForCancellation(token);
-
-                #region ASSEMBLE REGIONAL ELEMENT VALUE DICTIONARIES
-
-                // Get the Goal Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the Regional Goals dictionary ({reg_goals.Count} goals)..."), true, ++val);
-                Dictionary<int, Dictionary<int, double>> DICT_RegGoals = new Dictionary<int, Dictionary<int, double>>();
-                for (int i = 0; i < reg_goals.Count; i++)
-                {
-                    // Get the goal
-                    RegElement goal = reg_goals[i];
-
-                    // Get the values dictionary for this goal
-                    var getvals_outcome = await PRZH.GetValuesFromRegElementTable_PUID(goal.ElementID);
-                    if (getvals_outcome.success)
-                    {
-                        // Store dictionary in Goals dictionary
-                        DICT_RegGoals.Add(goal.ElementID, getvals_outcome.dict);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Goal {i} (element ID {goal.ElementID}): {getvals_outcome.dict.Count} values"), true, ++val);
-                    }
-                    else
-                    {
-                        // Store null value in Goals dictionary
-                        DICT_RegGoals.Add(goal.ElementID, null);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Goal {i} (element ID {goal.ElementID}): Null dictionary (no values retrieved)"), true, ++val);
-                    }
-                }
-
-                // Get the Weight Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the Regional Weights dictionary ({reg_weights.Count} weights)..."), true, ++val);
-                Dictionary<int, Dictionary<int, double>> DICT_RegWeights = new Dictionary<int, Dictionary<int, double>>();
-                for (int i = 0; i < reg_weights.Count; i++)
-                {
-                    // Get the weight
-                    RegElement weight = reg_weights[i];
-
-                    // Get the values dictionary for this weight
-                    var getvals_outcome = await PRZH.GetValuesFromRegElementTable_PUID(weight.ElementID);
-                    if (getvals_outcome.success)
-                    {
-                        // Store dictionary in Weights dictionary
-                        DICT_RegWeights.Add(weight.ElementID, getvals_outcome.dict);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Weight {i} (element ID {weight.ElementID}): {getvals_outcome.dict.Count} values"), true, ++val);
-                    }
-                    else
-                    {
-                        // Store null value in Weights dictionary
-                        DICT_RegWeights.Add(weight.ElementID, null);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Weight {i} (element ID {weight.ElementID}): Null dictionary (no values retrieved)"), true, ++val);
-                    }
-                }
-
-                // Get the Includes Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the Regional Includes dictionary ({reg_includes.Count} includes)..."), true, ++val);
-                Dictionary<int, Dictionary<int, double>> DICT_RegIncludes = new Dictionary<int, Dictionary<int, double>>();
-                for (int i = 0; i < reg_includes.Count; i++)
-                {
-                    // Get the include
-                    RegElement include = reg_includes[i];
-
-                    // Get the values dictionary for this include
-                    var getvals_outcome = await PRZH.GetValuesFromRegElementTable_PUID(include.ElementID);
-                    if (getvals_outcome.success)
-                    {
-                        // Store dictionary in Includes dictionary
-                        DICT_RegIncludes.Add(include.ElementID, getvals_outcome.dict);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Includes {i} (element ID {include.ElementID}): {getvals_outcome.dict.Count} values"), true, ++val);
-                    }
-                    else
-                    {
-                        // Store null value in Includes dictionary
-                        DICT_RegIncludes.Add(include.ElementID, null);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Includes {i} (element ID {include.ElementID}): Null dictionary (no values retrieved)"), true, ++val);
-                    }
-                }
-
-                // Get the Excludes Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the Regional Excludes dictionary ({reg_excludes.Count} excludes)..."), true, ++val);
-                Dictionary<int, Dictionary<int, double>> DICT_RegExcludes = new Dictionary<int, Dictionary<int, double>>();
-                for (int i = 0; i < reg_excludes.Count; i++)
-                {
-                    // Get the exclude
-                    RegElement exclude = reg_excludes[i];
-
-                    // Get the values dictionary for this exclude
-                    var getvals_outcome = await PRZH.GetValuesFromRegElementTable_PUID(exclude.ElementID);
-                    if (getvals_outcome.success)
-                    {
-                        // Store dictionary in Excludes dictionary
-                        DICT_RegExcludes.Add(exclude.ElementID, getvals_outcome.dict);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Excludes {i} (element ID {exclude.ElementID}): {getvals_outcome.dict.Count} values"), true, ++val);
-                    }
-                    else
-                    {
-                        // Store null value in Excludes dictionary
-                        DICT_RegExcludes.Add(exclude.ElementID, null);
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Excludes {i} (element ID {exclude.ElementID}): Null dictionary (no values retrieved)"), true, ++val);
-                    }
-                }
-
-                #endregion
-
-                #region GENERATE THE ATTRIBUTE CSV
-
-                string attributepath = Path.Combine(export_folder_path, PRZC.c_FILE_WTW_EXPORT_ATTR);
-
-                var csvConfig_Attr = new CsvConfiguration(CultureInfo.InvariantCulture)
-                {
-                    HasHeaderRecord = false, // this is default
-                    NewLine = Environment.NewLine
-                };
-
-                // TODO: Could this be spead up with a join of nat and reg goals, weights, includes, excludes by PUID?
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Creating attribute CSV..."), true, ++val);
-                using (var writer = new StreamWriter(attributepath))
-                using (var csv = new CsvWriter(writer, csvConfig_Attr))
-                {
-                    #region ADD COLUMN HEADERS (ROW 1)
-
-                    // GOALS
-                    // Nat
-                    for (int i = 0; i < nat_goals.Count; i++)
-                    {
-                        csv.WriteField(nat_goals[i].ElementTable);
-                    }
-                    // Reg
-                    for (int i = 0; i < reg_goals.Count; i++)
-                    {
-                        csv.WriteField(reg_goals[i].ElementTable);
-                    }
-
-                    // WEIGHTS
-                    // Nat
-                    for (int i = 0; i < nat_weights.Count; i++)
-                    {
-                        csv.WriteField(nat_weights[i].ElementTable);
-                    }
-                    // Reg
-                    for (int i = 0; i < reg_weights.Count; i++)
-                    {
-                        csv.WriteField(reg_weights[i].ElementTable);
-                    }
-
-                    // INCLUDES
-                    // Nat
-                    for (int i = 0; i < nat_includes.Count; i++)
-                    {
-                        csv.WriteField(nat_includes[i].ElementTable);
-                    }
-                    // Reg
-                    for (int i = 0; i < reg_includes.Count; i++)
-                    {
-                        csv.WriteField(reg_includes[i].ElementTable);
-                    }
-
-                    // EXCLUDES
-                    // Nat
-                    for (int i = 0; i < nat_excludes.Count; i++)
-                    {
-                        csv.WriteField(nat_excludes[i].ElementTable);
-                    }
-                    // Reg
-                    for (int i = 0; i < reg_excludes.Count; i++)
-                    {
-                        csv.WriteField(reg_excludes[i].ElementTable);
-                    }
-
-                    // Finally include the Planning Unit ID column
-                    csv.WriteField("_index");
-                    csv.NextRecord();   // First line is done!
-
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Headers added."), true, ++val);
-
-                    #endregion
-
-                    #region ADD DATA ROWS (ROWS 2 -> N)
-
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Writing values..."), true, ++val);
-                    for (int i = 0; i < PUIDs.Count; i++)
-                    {
-                        int puid = PUIDs[i];
-
-                        // GOALS
-                        // Nat
-                        for (int j = 0; j < nat_goals.Count; j++)
-                        {
-                            // Get the goal
-                            NatElement goal = nat_goals[j];
-
-                            if (DICT_NatGoals.ContainsKey(goal.ElementID))
-                            {
-                                var d = DICT_NatGoals[goal.ElementID]; // this is the dictionary of puid > value for this element id
-
-                                if (d.ContainsKey(puid))
-                                {
-                                    csv.WriteField(d[puid]);    // write the value
-                                }
-                                else
-                                {
-                                    // no puid in dictionary, just write a zero for this PUI + goal
-                                    csv.WriteField(0);
-                                }
-                            }
-                            else
-                            {
-                                // No dictionary, just write a zero for this PUID + goal
-                                csv.WriteField(0);
-                            }
-                        }
-                        // Reg
-                        for (int j = 0; j < reg_goals.Count; j++)
-                        {
-                            // Get the goal
-                            RegElement goal = reg_goals[j];
-
-                            if (DICT_RegGoals.ContainsKey(goal.ElementID))
-                            {
-                                var d = DICT_RegGoals[goal.ElementID]; // this is the dictionary of puid > value for this element id
-
-                                if (d.ContainsKey(puid))
-                                {
-                                    csv.WriteField(d[puid]);    // write the value
-                                }
-                                else
-                                {
-                                    // no puid in dictionary, just write a zero for this PUI + goal
-                                    csv.WriteField(0);
-                                }
-                            }
-                            else
-                            {
-                                // No dictionary, just write a zero for this PUID + goal
-                                csv.WriteField(0);
-                            }
-                        }
-
-
-                        // WEIGHTS
-                        // Nat
-                        for (int j = 0; j < nat_weights.Count; j++)
-                        {
-                            // Get the weight
-                            NatElement weight = nat_weights[j];
-
-                            if (DICT_NatWeights.ContainsKey(weight.ElementID))
-                            {
-                                var d = DICT_NatWeights[weight.ElementID]; // this is the dictionary of puid > value for this element id
-
-                                if (d.ContainsKey(puid))
-                                {
-                                    csv.WriteField(d[puid]);    // write the value
-                                }
-                                else
-                                {
-                                    // no puid in dictionary, just write a zero for this PUI + weight
-                                    csv.WriteField(0);
-                                }
-                            }
-                            else
-                            {
-                                // No dictionary, just write a zero for this PUID + weight
-                                csv.WriteField(0);
-                            }
-                        }
-                        // Reg
-                        for (int j = 0; j < reg_weights.Count; j++)
-                        {
-                            // Get the weight
-                            RegElement weight = reg_weights[j];
-
-                            if (DICT_RegWeights.ContainsKey(weight.ElementID))
-                            {
-                                var d = DICT_RegWeights[weight.ElementID]; // this is the dictionary of puid > value for this element id
-
-                                if (d.ContainsKey(puid))
-                                {
-                                    csv.WriteField(d[puid]);    // write the value
-                                }
-                                else
-                                {
-                                    // no puid in dictionary, just write a zero for this PUI + weight
-                                    csv.WriteField(0);
-                                }
-                            }
-                            else
-                            {
-                                // No dictionary, just write a zero for this PUID + weight
-                                csv.WriteField(0);
-                            }
-                        }
-
-                        // INCLUDES
-                        // Nat
-                        for (int j = 0; j < nat_includes.Count; j++)
-                        {
-                            // Get the include
-                            NatElement include = nat_includes[j];
-
-                            if (DICT_NatIncludes.ContainsKey(include.ElementID))
-                            {
-                                var d = DICT_NatIncludes[include.ElementID]; // this is the dictionary of puid > value for this element id
-
-                                if (d.ContainsKey(puid))
-                                {
-                                    csv.WriteField(d[puid]);    // write the value
-                                }
-                                else
-                                {
-                                    // no puid in dictionary, just write a zero for this PUI + include
-                                    csv.WriteField(0);
-                                }
-                            }
-                            else
-                            {
-                                // No dictionary, just write a zero for this PUID + include
-                                csv.WriteField(0);
-                            }
-                        }
-                        // Reg
-                        for (int j = 0; j < reg_includes.Count; j++)
-                        {
-                            // Get the include
-                            RegElement include = reg_includes[j];
-
-                            if (DICT_RegIncludes.ContainsKey(include.ElementID))
-                            {
-                                var d = DICT_RegIncludes[include.ElementID]; // this is the dictionary of puid > value for this element id
-
-                                if (d.ContainsKey(puid))
-                                {
-                                    csv.WriteField(d[puid]);    // write the value
-                                }
-                                else
-                                {
-                                    // no puid in dictionary, just write a zero for this PUI + include
-                                    csv.WriteField(0);
-                                }
-                            }
-                            else
-                            {
-                                // No dictionary, just write a zero for this PUID + include
-                                csv.WriteField(0);
-                            }
-                        }
-
-                        // EXCLUDES
-                        // Nat
-                        for (int j = 0; j < nat_excludes.Count; j++)
-                        {
-                            // Get the exclude
-                            NatElement exclude = nat_excludes[j];
-
-                            if (DICT_NatExcludes.ContainsKey(exclude.ElementID))
-                            {
-                                var d = DICT_NatExcludes[exclude.ElementID]; // this is the dictionary of puid > value for this element id
-
-                                if (d.ContainsKey(puid))
-                                {
-                                    csv.WriteField(d[puid]);    // write the value
-                                }
-                                else
-                                {
-                                    // no puid in dictionary, just write a zero for this PUI + exclude
-                                    csv.WriteField(0);
-                                }
-                            }
-                            else
-                            {
-                                // No dictionary, just write a zero for this PUID + exclude
-                                csv.WriteField(0);
-                            }
-                        }
-                        // Reg
-                        for (int j = 0; j < reg_excludes.Count; j++)
-                        {
-                            // Get the exclude
-                            RegElement exclude = reg_excludes[j];
-
-                            if (DICT_RegExcludes.ContainsKey(exclude.ElementID))
-                            {
-                                var d = DICT_RegExcludes[exclude.ElementID]; // this is the dictionary of puid > value for this element id
-
-                                if (d.ContainsKey(puid))
-                                {
-                                    csv.WriteField(d[puid]);    // write the value
-                                }
-                                else
-                                {
-                                    // no puid in dictionary, just write a zero for this PUI + exclude
-                                    csv.WriteField(0);
-                                }
-                            }
-                            else
-                            {
-                                // No dictionary, just write a zero for this PUID + exclude
-                                csv.WriteField(0);
-                            }
-                        }
-
-                        // Finally, write the Planning Unit ID and end the row
-                        csv.WriteField(puid);
-                        csv.NextRecord();
-                    }
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"{PUIDs.Count} data rows written to CSV."), true, ++val);
-
-                    #endregion
-                }
-
-                // Compress Attribute CSV to gzip format
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Zipping attribute CSV."), true, ++val);
-                FileInfo attribfi = new FileInfo(attributepath);
-                FileInfo attribzgipfi = new FileInfo(string.Concat(attribfi.FullName, ".gz"));
-
-                using (FileStream fileToBeZippedAsStream = attribfi.OpenRead())
-                using (FileStream gzipTargetAsStream = attribzgipfi.Create())
-                using (GZipStream gzipStream = new GZipStream(gzipTargetAsStream, CompressionMode.Compress))
-                {
-                    try
-                    {
-                        fileToBeZippedAsStream.CopyTo(gzipStream);
-                    }
-                    catch (Exception ex)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error zipping attribute CSV.\n{ex.Message}", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error zipping attribute CSV.\n{ex.Message}");
-                        return;
-                    }
-                }
-
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Attribute CSV zipped."), true, ++val);
-
-                #endregion
-
-                PRZH.CheckForCancellation(token);
-
-                #region GENERATE AND ZIP THE BOUNDARY CSV
-
-                string bndpath = Path.Combine(export_folder_path, PRZC.c_FILE_WTW_EXPORT_BND);
-
-                var csvConfig_Bnd = new CsvConfiguration(CultureInfo.InvariantCulture)
-                {
-                    HasHeaderRecord = false, // this is default
-                    NewLine = Environment.NewLine
-                };
-
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Creating boundary CSV..."), true, ++val);
-                using (var writer = new StreamWriter(bndpath))
-                using (var csv = new CsvWriter(writer, csvConfig_Bnd))
-                {
-                    // *** ROW 1 => COLUMN NAMES
-
-                    // PU ID Columns
-                    csv.WriteField(PRZC.c_FLD_TAB_BOUND_ID1);
-                    csv.WriteField(PRZC.c_FLD_TAB_BOUND_ID2);
-                    csv.WriteField(PRZC.c_FLD_TAB_BOUND_BOUNDARY);
-
-                    csv.NextRecord();
-
-                    // *** ROWS 2 TO N => Boundary Records
-                    if (!await QueuedTask.Run(() =>
-                    {
-                        try
-                        {
-                            var tryget = PRZH.GetTable_Project(PRZC.c_TABLE_PUBOUNDARY);
-                            if (!tryget.success)
-                            {
-                                throw new Exception("Unable to retrieve table.");
-                            }
-
-                            using (Table table = tryget.table)
-                            using (RowCursor rowCursor = table.Search())
-                            {
-                                while (rowCursor.MoveNext())
-                                {
-                                    using (Row row = rowCursor.Current)
-                                    {
-                                        int id1 = Convert.ToInt32(row[PRZC.c_FLD_TAB_BOUND_ID1]);
-                                        int id2 = Convert.ToInt32(row[PRZC.c_FLD_TAB_BOUND_ID2]);
-                                        double bnd = Convert.ToDouble(row[PRZC.c_FLD_TAB_BOUND_BOUNDARY]);
-
-                                        csv.WriteField(id1);
-                                        csv.WriteField(id2);
-                                        csv.WriteField(bnd);
-
-                                        csv.NextRecord();
-                                    }
-                                }
-                            }
-
-                            return true;
-                        }
-                        catch (Exception ex)
-                        {
-                            ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
-                            return false;
-                        }
-                    }))
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating boundary CSV.", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error creating boundary CSV.");
-                        return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Boundary CSV created."), true, ++val);
-                    }
-                }
-
-                // Compress Boundary CSV to gzip format
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Zipping boundary CSV."), true, ++val);
-                FileInfo bndfi = new FileInfo(bndpath);
-                FileInfo bndzgipfi = new FileInfo(string.Concat(bndfi.FullName, ".gz"));
-
-                using (FileStream fileToBeZippedAsStream = bndfi.OpenRead())
-                using (FileStream gzipTargetAsStream = bndzgipfi.Create())
-                using (GZipStream gzipStream = new GZipStream(gzipTargetAsStream, CompressionMode.Compress))
-                {
-                    try
-                    {
-                        fileToBeZippedAsStream.CopyTo(gzipStream);
-                    }
-                    catch (Exception ex)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error zipping boundary CSV.\n{ex.Message}", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error zipping boundary CSV.\n{ex.Message}");
-                        return;
-                    }
-                }
-
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Boundary CSV zipped."), true, ++val);
-
-                #endregion
-
-                PRZH.CheckForCancellation(token);
-
-                #region GENERATE THE YAML FILE
+                #region Populate and write YAML Objects
 
                 #region THEMES & GOALS
 
@@ -1662,6 +986,10 @@ namespace NCC.PRZTools
                 }
 
                 #endregion
+
+                #endregion
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done generating YAML file."), true, ++val);
 
                 #endregion
 
@@ -2096,8 +1424,6 @@ namespace NCC.PRZTools
 
             try
             {
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Creating Tiff..."), true, ++val);
-
                 // Declare some generic GP variables
                 IReadOnlyList<string> toolParams;
                 IReadOnlyList<KeyValuePair<string, string>> toolEnvs;
@@ -2117,69 +1443,10 @@ namespace NCC.PRZTools
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"{PRZC.c_RAS_PLANNING_UNITS} raster not found.", LogMessageType.ERROR), true, ++val);
                     return (false, $"{PRZC.c_RAS_PLANNING_UNITS} raster not found");
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"{PRZC.c_RAS_PLANNING_UNITS} raster found."), true, ++val);
-                }
-
-                PRZH.CheckForCancellation(token);
-
-                // TODO: Reproject to Albers instead of WGS84, maybe?
-                //// Project raster
-                //PRZH.UpdateProgress(PM, PRZH.WriteLog($"Projecting {PRZC.c_FC_PLANNING_UNITS} feature class..."), true, ++val);
-                //toolParams = Geoprocessing.MakeValueArray(PRZC.c_FC_PLANNING_UNITS, PRZC.c_FC_TEMP_WTW_FC2, Export_SR, "", "", "NO_PRESERVE_SHAPE", "", "");
-                //toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
-                //toolOutput = await PRZH.RunGPTool("Project_management", toolParams, toolEnvs, toolFlags_GP);
-                //if (toolOutput == null)
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error projecting feature class.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                //    return (false, "Error projecting feature class.");
-                //}
-                //else
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Projection successful."), true, ++val);
-                //}
-
-                PRZH.CheckForCancellation(token);
-
-                // TODO: Figure out if relevant for rasters
-                //// Repair Geometry
-                //PRZH.UpdateProgress(PM, PRZH.WriteLog("Repairing geometry..."), true, ++val);
-                //toolParams = Geoprocessing.MakeValueArray(PRZC.c_FC_TEMP_WTW_FC2);
-                //toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                //toolOutput = await PRZH.RunGPTool("RepairGeometry_management", toolParams, toolEnvs, toolFlags_GP);
-                //if (toolOutput == null)
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error repairing geometry.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                //    return (false, "Error repairing geometry.");
-                //}
-                //else
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Geometry repaired."), true, ++val);
-                //}
-
-                PRZH.CheckForCancellation(token);
-
-                // TODO: Could copy and delete fields, but extra attribute fields are maybe fine
-                //// Delete the unnecessary fields
-                //PRZH.UpdateProgress(PM, PRZH.WriteLog("Deleting extra fields..."), true, ++val);
-                //toolParams = Geoprocessing.MakeValueArray(PRZC.c_FC_TEMP_WTW_FC2, PRZC.c_FLD_FC_PU_ID, "KEEP_FIELDS");
-                //toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                //toolOutput = await PRZH.RunGPTool("DeleteField_management", toolParams, toolEnvs, toolFlags_GP);
-                //if (toolOutput == null)
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting fields.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                //    return (false, "Error deleting fields.");
-                //}
-                //else
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Fields deleted."), true, ++val);
-                //}
 
                 PRZH.CheckForCancellation(token);
 
                 // Export to Tiff
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Export the {PRZC.c_FILE_WTW_EXPORT_SPATIAL} raser..."), true, ++val);
                 toolParams = Geoprocessing.MakeValueArray(PRZC.c_RAS_PLANNING_UNITS, export_tif_path); // TODO: update layer being updated if copied and modified
                 toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
                 toolOutput = await PRZH.RunGPTool("CopyRaster_management", toolParams, toolEnvs, toolFlags_GP);
@@ -2188,64 +1455,15 @@ namespace NCC.PRZTools
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error exporting the {PRZC.c_FILE_WTW_EXPORT_SPATIAL} raster.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
                     return (false, $"Error exporting the {PRZC.c_FILE_WTW_EXPORT_SPATIAL} raster.");
                 }
-                else
+
+                // Clean up unnecessary files
+                string[] spatial_files = Directory.GetFiles(export_folder_path, $"{PRZC.c_FILE_WTW_EXPORT_SPATIAL}*");
+                foreach (string spatial_file in spatial_files)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Raster exported."), true, ++val);
+                    if (spatial_file != export_tif_path) File.Delete(spatial_file);
                 }
 
                 PRZH.CheckForCancellation(token);
-
-                //// Index the new id field
-                //PRZH.UpdateProgress(PM, PRZH.WriteLog($"Indexing {PRZC.c_FLD_FC_PU_ID} field..."), true, ++val);
-                //toolParams = Geoprocessing.MakeValueArray(PRZC.c_FILE_WTW_EXPORT_SPATIAL, new List<string>() { PRZC.c_FLD_FC_PU_ID }, "ix" + PRZC.c_FLD_FC_PU_ID, "", "");
-                //toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: export_folder_path);
-                //toolOutput = await PRZH.RunGPTool("AddIndex_management", toolParams, toolEnvs, toolFlags_GP);
-                //if (toolOutput == null)
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                //    return (false, "Error indexing field.");
-                //}
-                //else
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Field indexed."), true, ++val);
-                //}
-
-                //PRZH.CheckForCancellation(token);
-
-                //// Delete the unnecessary fields
-                //PRZH.UpdateProgress(PM, PRZH.WriteLog("Deleting extra fields (again)..."), true, ++val);
-                //toolParams = Geoprocessing.MakeValueArray(PRZC.c_FILE_WTW_EXPORT_SPATIAL, PRZC.c_FLD_FC_PU_ID, "KEEP_FIELDS");
-                //toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: export_folder_path);
-                //toolOutput = await PRZH.RunGPTool("DeleteField_management", toolParams, toolEnvs, toolFlags_GP);
-                //if (toolOutput == null)
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting fields.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                //    return (false, "Error deleting fields.");
-                //}
-                //else
-                //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog("Fields deleted."), true, ++val);
-                //}
-
-                //PRZH.CheckForCancellation(token);
-
-                //// Delete temp feature class
-                //PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting {PRZC.c_FC_TEMP_WTW_FC2} feature class..."), true, ++val);
-                //if ((await PRZH.FCExists_Project(PRZC.c_FC_TEMP_WTW_FC2)).exists)
-                //{
-                //    toolParams = Geoprocessing.MakeValueArray(PRZC.c_FC_TEMP_WTW_FC2);
-                //    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                //    toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
-                //    if (toolOutput == null)
-                //    {
-                //        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting {PRZC.c_FC_TEMP_WTW_FC2} feature class.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                //        return (false, $"Error deleting {PRZC.c_FC_TEMP_WTW_FC2} feature class.");
-                //    }
-                //    else
-                //    {
-                //        PRZH.UpdateProgress(PM, PRZH.WriteLog("Feature class deleted."), true, ++val);
-                //    }
-                //}
 
                 return (true, "success");
             }
@@ -2272,31 +1490,6 @@ namespace NCC.PRZTools
             {
                 #region INITIALIZATION
 
-                // Initialize a few objects and names
-                string temp_table = "boundtemp";
-                string temp_table_2 = "boundtemp2";
-                string temp_table_3 = "boundtemp3";
-
-                // Declare some generic GP variables
-                IReadOnlyList<string> toolParams;
-                IReadOnlyList<KeyValuePair<string, string>> toolEnvs;
-                GPExecuteToolFlags toolFlags_GP = GPExecuteToolFlags.GPThread;
-                string toolOutput;
-
-                // GDBPath
-                string gdbpath = PRZH.GetPath_ProjectGDB();
-
-                // Get the Planning Unit Spatial Reference (from the FC)
-                SpatialReference PlanningUnitSR = await QueuedTask.Run(() =>
-                {
-                    var tryget_ras = PRZH.GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
-                    using (RasterDataset rasterDataset = tryget_ras.rasterDataset)
-                    using (RasterDatasetDefinition rasterDef = rasterDataset.GetDefinition())
-                    {
-                        return rasterDef.GetSpatialReference();
-                    }
-                });
-
                 // Get the Planning Unit Perimeter (from the raster)
                 double side_length = await QueuedTask.Run(() =>
                 {
@@ -2321,444 +1514,259 @@ namespace NCC.PRZTools
                     }
                 });
 
-                int grid_height = await QueuedTask.Run(() =>
-                {
-                    var tryget_ras = PRZH.GetRaster_Project(PRZC.c_RAS_PLANNING_UNITS);
-
-                    using (RasterDataset RD = tryget_ras.rasterDataset)
-                    using (Raster raster = RD.CreateFullRaster())
-                    {
-                        return raster.GetHeight();
-                    }
-                });
-
-                #endregion
-
-                PRZH.CheckForCancellation(token);
-
-                #region DELETE OBJECTS
-
-                // Delete the Boundary table if present
-                if ((await PRZH.TableExists_Project(PRZC.c_TABLE_PUBOUNDARY)).exists)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting the {PRZC.c_TABLE_PUBOUNDARY} table..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_PUBOUNDARY);
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                    toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                        return (false, "error deleting table.");
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Table deleted successfully."), true, ++val);
-                    }
-                }
-
-                PRZH.CheckForCancellation(token);
-
-                // Delete the temp table if present
-                if ((await PRZH.TableExists_Project(temp_table)).exists)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting the {temp_table} table..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(temp_table);
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                    toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {temp_table} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error deleting the {temp_table} table.");
-                        return (false, "error deleting table.");
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Table deleted successfully."), true, ++val);
-                    }
-                }
-
-                PRZH.CheckForCancellation(token);
-
                 #endregion
 
                 PRZH.CheckForCancellation(token);
 
                 #region Create PUID to boundary table ID lookup table
 
-                // Get look up table of PUID to BUID
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("Building lookup from PUID to Boundary Table IDs..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(PRZC.c_RAS_PLANNING_UNITS, temp_table);
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("ExportTable_conversion", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the PUID to Boundary Table ID lookup.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error creating the boundary ID lookup.");
-                    return (false, "error creating table.");
-                }
+                var tryget_buiddict = await PRZH.GetPUIDsAndBUIDs();
 
-                PRZH.CheckForCancellation(token);
-
-                toolParams = Geoprocessing.MakeValueArray(temp_table, Geoprocessing.MakeValueArray(PRZC.c_FLD_RAS_PU_BOUNDARY_ID, PRZC.c_FLD_RAS_PU_ID), "KEEP_FIELDS");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath);
-                toolOutput = await PRZH.RunGPTool("DeleteField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
+                if (!tryget_buiddict.success)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the PUID to Boundary Table ID lookup.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error creating the boundary ID lookup.");
-                    return (false, "error creating table.");
+                    return (false, tryget_buiddict.message);
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Table created."), true, ++val);
-                }
-
-                PRZH.CheckForCancellation(token);
+                Dictionary<int, int> buid_dict = tryget_buiddict.dict;
 
                 #endregion
 
-                #region Find potential boundaries to the right
-
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Finding neighbouring cells to the right..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(temp_table, temp_table_2, $"MOD({PRZC.c_FLD_RAS_PU_ID}, {grid_width}) <> 0"); // Don't include right-most column
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("ExportTable_conversion", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error creating the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error creating table.");
-                }
-
                 PRZH.CheckForCancellation(token);
 
-                toolParams = Geoprocessing.MakeValueArray(temp_table_2, PRZC.c_FLD_RAS_PU_ID, $"!{PRZC.c_FLD_RAS_PU_ID}! + 1", "PYTHON3");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CalculateField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating neighbours in {temp_table_2} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error adding fields to {temp_table_2} table");
-                    return (false, "error adding fields.");
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Successfully created table."), true, ++val);
-                }
+                #region Find all neighbours
 
-                PRZH.CheckForCancellation(token);
+                // Find cells with valid neighours to the right and below
+                // - For the right, this requires that the next PUID is also in the dictionary and the cell is not on the right edge (in which case the next valid PUID is on the next row)
+                // - For below, this requires that the PUID one row below is also in the dictionary
+                // - Keys are PUID, values are BUID
+                Dictionary<int, int> buid_dict_right = buid_dict.Where(kv => buid_dict.ContainsKey(kv.Key + 1) & (kv.Key % grid_width != 0)).ToDictionary(kv => kv.Key, kv => kv.Value);
+                Dictionary<int, int> buid_dict_below = buid_dict.Where(kv => buid_dict.ContainsKey(kv.Key + grid_width)).ToDictionary(kv => kv.Key, kv => kv.Value);
+
+                // All cells need four side-lengths worth of edges, those without enough neighbours require self intersections to make up the difference
+                // - Keys are BUID, values are side lengths
+                Dictionary<int, double> buid_dict_self = new Dictionary<int, double>();
+                foreach (int puid in buid_dict.Keys)
+                {
+                    // A cell can have at most 4 self intersections, one less for each valid neighbour
+                    int edges = 4;
+
+                    if (buid_dict_right.ContainsKey(puid)) edges--;              // Valid neighbour to right
+                    if (buid_dict_right.ContainsKey(puid - 1)) edges--;          // Valid neighbour to left
+                    if (buid_dict_below.ContainsKey(puid)) edges--;              // Valid neigbour below
+                    if (buid_dict_below.ContainsKey(puid - grid_width)) edges--; // Valid neighbour above
+
+                    // Skip cell if there is no self intersection
+                    if (edges == 0) continue;
+
+                    buid_dict_self.Add(buid_dict[puid], side_length * edges);
+                }
 
                 #endregion
 
-                #region Find potential boundaries below
-
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Finding neighbouring cells below..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(temp_table, temp_table_3, $"{PRZC.c_FLD_RAS_PU_ID} + {grid_width} <= {grid_width} * {grid_height}"); // Don't include last row
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("ExportTable_conversion", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error creating the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error creating table.");
-                }
-
                 PRZH.CheckForCancellation(token);
 
-                toolParams = Geoprocessing.MakeValueArray(temp_table_3, PRZC.c_FLD_RAS_PU_ID, $"!{PRZC.c_FLD_RAS_PU_ID}! + {grid_width}", "PYTHON3");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CalculateField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
+                #region Write out boundary table
+
+                // Initialize output as plain text file
+                StringBuilder csv = new StringBuilder();
+
+                // Add header
+                csv.AppendLine("i,j,x");
+
+                // Add boundaries to the right
+                foreach (var entry in buid_dict_right)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating neighbours in {temp_table_2} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error adding fields to {temp_table_2} table");
-                    return (false, "error adding fields.");
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Successfully created table."), true, ++val);
+                    csv.AppendLine($"{entry.Value},{entry.Value + 1},{side_length}");
                 }
 
-                PRZH.CheckForCancellation(token);
+                // Add boundaries below
+                foreach (var entry in buid_dict_below)
+                {
+                    int puid_below = entry.Key + grid_width;
+                    csv.AppendLine($"{entry.Value},{buid_dict[puid_below]},{side_length}");
+                }
+
+                // Add self intersections
+                // - Note keys are BUID, values are side_lengths, unlike previous dictionaries
+                foreach (var entry in buid_dict_self)
+                {
+                    csv.AppendLine($"{entry.Key},{entry.Key},{entry.Value}");
+                }
+
+                // Finally output
+                string export_folder_path = PRZH.GetPath_ExportWTWFolder();
+                string bndpath = Path.Combine(export_folder_path, PRZC.c_FILE_WTW_EXPORT_BND);
+
+                File.WriteAllText(bndpath, csv.ToString());
 
                 #endregion
 
-                #region Build boundary table without self intersection
 
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Builiding table of neighbours without self-intersection..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(temp_table_3, temp_table_2);
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("Append_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
+                #region Compress Boundary CSV
+
+                FileInfo bndfi = new FileInfo(bndpath);
+                FileInfo bndgzipfi = new FileInfo(string.Concat(bndfi.FullName, ".gz"));
+
+                using (FileStream fileToBeZippedAsStream = bndfi.OpenRead())
+                using (FileStream gzipTargetAsStream = bndgzipfi.Create())
+                using (GZipStream gzipStream = new GZipStream(gzipTargetAsStream, CompressionMode.Compress))
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error creating the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error creating table.");
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Table created."), true, ++val);
+                    fileToBeZippedAsStream.CopyTo(gzipStream);
                 }
 
-                PRZH.CheckForCancellation(token);
+                File.Delete(bndpath);
 
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Identify invalid PUIDs from boundary table..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(temp_table_2, PRZC.c_FLD_RAS_PU_ID, temp_table, PRZC.c_FLD_RAS_PU_ID);
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("JoinField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error creating table.");
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Table successfully filtered."), true, ++val);
-                }
+                return (true, "success");
 
-                PRZH.CheckForCancellation(token);
+                #endregion
+            }
+            catch (OperationCanceledException cancelex)
+            {
+                throw cancelex;
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+        private async Task<(bool success, string message)> BuildAttributeTable(CancellationToken token)
+        {
+            int val = PM.Current;
+            int max = PM.Max;
+
+            try
+            {
+                #region Initialization
+
+
+                // Identify files to read
+                List<string> national_element_paths = Directory.GetFiles(PRZH.GetPath_ProjectNationalElementsSubfolder(), "*.bin").ToList();
+                List<string> regional_element_paths = new List<string>(); // TODO: Update to load regional data also
+
+                List<string> element_paths = Enumerable.Concat(national_element_paths, regional_element_paths).ToList();
+
+                // Initialize dictionary
+                Dictionary<string, Dictionary<long, double>> attributes = new Dictionary<string, Dictionary<long, double>>(element_paths.Count());
+                //ConcurrentDictionary<string, Dictionary<long, double>> attributes = new ConcurrentDictionary<string, Dictionary<long, double>>();
 
                 #endregion
 
-                #region Clean boundary table without self intersection
-
-                // Delete fields used for joining
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Clean boundary table without self-intersection..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(temp_table_2, Geoprocessing.MakeValueArray(PRZC.c_FLD_RAS_PU_BOUNDARY_ID, $"{PRZC.c_FLD_RAS_PU_BOUNDARY_ID}_1"), "KEEP_FIELDS");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath);
-                toolOutput = await PRZH.RunGPTool("DeleteField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error creating table.");
-                }
-
                 PRZH.CheckForCancellation(token);
 
-                // Rename fields for boundary table output
-                toolParams = Geoprocessing.MakeValueArray(temp_table_2, PRZC.c_FLD_RAS_PU_BOUNDARY_ID, PRZC.c_FLD_TAB_BOUND_ID1, "ID 1");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath);
-                toolOutput = await PRZH.RunGPTool("AlterField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error creating table.");
-                }
+                #region Create cell number to PUID lookup table
 
-                toolParams = Geoprocessing.MakeValueArray(temp_table_2, $"{PRZC.c_FLD_RAS_PU_BOUNDARY_ID}_1", PRZC.c_FLD_TAB_BOUND_ID2, "ID 2");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath);
-                toolOutput = await PRZH.RunGPTool("AlterField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error creating table.");
-                }
+                var tryget_cndict = await PRZH.GetCellNumbersAndPUIDs();
 
-                PRZH.CheckForCancellation(token);
-
-                // Copy to final location and remove null values
-                toolParams = Geoprocessing.MakeValueArray(temp_table_2, PRZC.c_TABLE_PUBOUNDARY, $"{PRZC.c_FLD_TAB_BOUND_ID2} IS NOT NULL", "");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("ExportTable_conversion", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
+                if (!tryget_cndict.success)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error filtering the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error creating table.");
+                    return (false, tryget_cndict.message);
                 }
-
-                // Add in boundary field
-                toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_PUBOUNDARY, PRZC.c_FLD_TAB_BOUND_BOUNDARY, $"{side_length}", "PYTHON3");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CalculateField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding field to the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error adding field to the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error adding fields.");
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Successfully cleaned table."), true, ++val);
-                }
-
-                PRZH.CheckForCancellation(token);
+                Dictionary<long, int> cn_dict = tryget_cndict.dict;
 
                 #endregion
 
-                #region Calculate self-intersections
-
-                // Count boundaries for each cell to the right and down
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Calculate self-intersections..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray($"{gdbpath}/{PRZC.c_TABLE_PUBOUNDARY}", PRZC.c_FLD_TAB_BOUND_ID1, gdbpath, $"NUMERIC {temp_table_2}", PRZC.c_FLD_TAB_BOUND_ID1, "COUNT"); // TODO: Clean up in_table definition
-                toolEnvs = Geoprocessing.MakeEnvironmentArray();
-                toolOutput = await PRZH.RunGPTool("FieldStatisticsToTable_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating self intersections for {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error calculating self intersections for the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error summarizing table.");
-                }
-
-                // Count boundaries for each cell to the left and up
-                toolParams = Geoprocessing.MakeValueArray($"{gdbpath}/{PRZC.c_TABLE_PUBOUNDARY}", PRZC.c_FLD_TAB_BOUND_ID2, gdbpath, $"NUMERIC {temp_table_3}", PRZC.c_FLD_TAB_BOUND_ID2, "COUNT"); // TODO: Clean up in_table definition
-                toolEnvs = Geoprocessing.MakeEnvironmentArray();
-                toolOutput = await PRZH.RunGPTool("FieldStatisticsToTable_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating self intersections for {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error calculating self intersections for the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error summarizing table.");
-                }
-
-                // Join boundary counts to full table of boundary IDs
-                toolParams = Geoprocessing.MakeValueArray(temp_table, PRZC.c_FLD_RAS_PU_BOUNDARY_ID, temp_table_2, PRZC.c_FLD_TAB_BOUND_ID1);
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("JoinField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating self intersections for {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error calculating self intersections for the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error summarizing table.");
-                }
-
                 PRZH.CheckForCancellation(token);
 
-                toolParams = Geoprocessing.MakeValueArray(temp_table, PRZC.c_FLD_RAS_PU_BOUNDARY_ID, temp_table_3, PRZC.c_FLD_TAB_BOUND_ID2);
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("JoinField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating self intersections for {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error calculating self intersections for the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error summarizing table.");
-                }
+                #region Get attribute data
 
-                PRZH.CheckForCancellation(token);
+                // Get all attributes
 
-                // Calculate self-intersecting boundaries
-                toolParams = Geoprocessing.MakeValueArray(temp_table, PRZC.c_FLD_TAB_BOUND_BOUNDARY, $"{side_length} * (4 - sum(filter(None, [!Count!, !Count_1!])))", "PYTHON3", "", "DOUBLE");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CalculateField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating self intersections for {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error calculating self intersections for the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error summarizing table.");
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Successfully calculated self-intersection."), true, ++val);
-                }
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Loading all national and regional elements..."), true, ++val);
 
-                PRZH.CheckForCancellation(token);
+                int progress = 0;
+                var options = new ParallelOptions() { MaxDegreeOfParallelism = 3 };
+
+                //foreach (string element_path in element_paths)
+                await Parallel.ForEachAsync(element_paths, options, async (element_path, token) =>
+                {
+                    progress++;
+                    if (progress % 250 == 0)
+                    {
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done loading {progress} / {element_paths.Count()} elements."), true, ++val);
+                    }
+
+                    var tryread = PRZH.ReadBinary(element_path);
+                    if (!tryread.success)
+                    {
+                        throw new Exception($"Could not read element binary file. Message: {tryread.message}");
+                    }
+
+                    //attributes.TryAdd(Path.GetFileNameWithoutExtension(element_path), (Dictionary<long, double>)tryread.obj);
+                    attributes.Add(Path.GetFileNameWithoutExtension(element_path), (Dictionary<long, double>)tryread.obj);
+                    //}
+                });
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done loading all national and regional elements."), true, ++val);
 
                 #endregion
 
-                #region Clean and append self-intersections
-
-                // Fill in missing id values
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Clean and append self-intersections to boundary table..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(temp_table, PRZC.c_FLD_TAB_BOUND_ID1, $"!{PRZC.c_FLD_RAS_PU_BOUNDARY_ID}!", "PYTHON3");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CalculateField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating self intersections for {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error calculating self intersections for the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error summarizing table.");
-                }
-
                 PRZH.CheckForCancellation(token);
 
-                toolParams = Geoprocessing.MakeValueArray(temp_table, PRZC.c_FLD_TAB_BOUND_ID2, $"!{PRZC.c_FLD_RAS_PU_BOUNDARY_ID}!", "PYTHON3");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CalculateField_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating self intersections for {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error calculating self intersections for the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error summarizing table.");
-                }
+                #region Write out attribute table
 
-                PRZH.CheckForCancellation(token);
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Building and writing attribute table."), true, ++val);
 
-                // Append self-intersections to boundary table
-                toolParams = Geoprocessing.MakeValueArray(temp_table, PRZC.c_TABLE_PUBOUNDARY, "NO_TEST", "", "", $"{PRZC.c_FLD_TAB_BOUND_BOUNDARY} > 0");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("Append_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error appending to the {PRZC.c_TABLE_PUBOUNDARY} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error appending to the {PRZC.c_TABLE_PUBOUNDARY} table.");
-                    return (false, "error appending to table.");
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Successfully cleaned and appended self-intersections to boundary table."), true, ++val);
-                }
+                // Finally output
+                string export_folder_path = PRZH.GetPath_ExportWTWFolder();
+                string atrpath = Path.Combine(export_folder_path, PRZC.c_FILE_WTW_EXPORT_ATTR);
+                progress = 0;
 
-                PRZH.CheckForCancellation(token);
+                // Write Line-by-Line
+                await using (StreamWriter writetext = new StreamWriter(atrpath))
+                {
+                    // Header
+                    foreach (string element_name in attributes.Keys)
+                    {
+                        await writetext.WriteAsync($"{element_name},");
+                    }
+                    await writetext.WriteLineAsync("_index");
+
+                    // For each line
+                    foreach (var cn_puid in cn_dict)
+                    {
+                        progress++;
+                        if (progress % 100000 == 0)
+                        {
+                            PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done writing {progress} / {cn_dict.Count()} lines of attribute table."), true, ++val);
+                        }
+
+                        StringBuilder line = new StringBuilder();
+
+                        foreach (Dictionary<long, double> element_dict in attributes.Values)
+                        {
+                            if (element_dict.ContainsKey(cn_puid.Key))
+                            {
+                                line.Append($"{element_dict[cn_puid.Key]},");
+                                //await writetext.WriteAsync($"{element_dict[cn_puid.Key]},");
+                            }
+                            else line.Append("0,"); //await writetext.WriteAsync("0,");
+                        }
+
+                        // Finally write PUID and end line
+                        line.Append($"{cn_puid.Value}");
+                        //await writetext.WriteLineAsync($"{cn_puid.Value}");
+
+                        await writetext.WriteLineAsync(line);
+                    }
+                }
 
                 #endregion
 
-                #region DELETE TEMP OBJECTS
+                PRZH.CheckForCancellation(token);
 
-                // Delete temp table
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting temporary tables..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray($"{temp_table};{temp_table_2};{temp_table_3}");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
+                #region Compress Boundary CSV
+
+                FileInfo atrfi = new FileInfo(atrpath);
+                FileInfo atrgzipfi = new FileInfo(string.Concat(atrfi.FullName, ".gz"));
+
+                using (FileStream fileToBeZippedAsStream = atrfi.OpenRead())
+                using (FileStream gzipTargetAsStream = atrgzipfi.Create())
+                using (GZipStream gzipStream = new GZipStream(gzipTargetAsStream, CompressionMode.Compress))
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting {temp_table} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error deleting {temp_table} table.");
-                    return (false, "error deleting table.");
+                    fileToBeZippedAsStream.CopyTo(gzipStream);
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Tables deleted."), true, ++val);
-                }
-                
+
+                File.Delete(atrpath);
+
                 return (true, "success");
 
                 #endregion
