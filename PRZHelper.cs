@@ -14,6 +14,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -259,6 +260,20 @@ namespace NCC.PRZTools
             }
         }
 
+        // National GDB
+        public static string GetPath_NatGDBFolder()
+        {
+            try
+            {
+                return Path.GetDirectoryName(Properties.Settings.Default.NATDB_DBPATH);
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
         // Raster Tools Scratch Geodatabase
         public static string GetPath_RTScratchGDB()
         {
@@ -358,6 +373,89 @@ namespace NCC.PRZTools
             }
         }
 
+        // National Database Elements Folder
+        public static string GetPath_NationalDatabaseElementsSubfolder()
+        {
+            try
+            {
+                string natdbfolderpath = GetPath_NatGDBFolder();
+                string natelementswpath = Path.Combine(natdbfolderpath, PRZC.c_DIR_PRZ_ELEMENTS);
+
+                return natelementswpath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
+        // National Database Tile Metadata
+        public static string GetPath_NationalDatabaseElementsTileMetadataPath()
+        {
+            try
+            {
+                string natelementswpath = GetPath_NationalDatabaseElementsSubfolder();
+                string natelementstilepath = Path.Combine(natelementswpath, PRZC.c_FILE_METADATA_TILES);
+
+                return natelementstilepath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
+        // Project National Elements Subfolder
+        public static string GetPath_ProjectNationalElementsSubfolder()
+        {
+            try
+            {
+                string wspath = GetPath_ProjectFolder();
+                string natelementswpath = Path.Combine(wspath, PRZC.c_DIR_PRZ_ELEMENTS, PRZC.c_DIR_NATDATA_ELEMENTS);
+
+                return natelementswpath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
+        // Project Metadata Folder
+        public static string GetPath_ProjectMetadataFolder()
+        {
+            try
+            {
+                string wspath = GetPath_ProjectFolder();
+                string metadatapath = Path.Combine(wspath, PRZC.c_DIR_PRZ_METADATA);
+
+                return metadatapath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
+        public static string GetPath_ProjectTilesMetadataPath()
+        {
+            try
+            {
+                string metadatapath = GetPath_ProjectMetadataFolder();
+                string tilespath = Path.Combine(metadatapath, PRZC.c_FILE_METADATA_TILES);
+
+                return tilespath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
 
         #endregion
 
@@ -3633,7 +3731,7 @@ namespace NCC.PRZTools
         /// </summary>
         /// <param name="element_id"></param>
         /// <returns></returns>
-        public static async Task<(bool success, Dictionary<int, double> dict, string message)> GetValuesFromNatElementTable_PUID(int element_id)
+        public static async Task<(bool success, Dictionary<int, double> dict, string message)> GetValuesFromNatElementTable_PUID(int element_id, Dictionary<long, int> cellnumdict, string input_folder)
         {
             try
             {
@@ -3645,88 +3743,46 @@ namespace NCC.PRZTools
 
                 // Get element table name
                 var trygetname = GetNationalElementTableName(element_id);
-
                 if (!trygetname.success)
                 {
                     return (false, null, "Unable to retrieve element table name");
                 }
 
-                string table_name = trygetname.table_name;
-
-                // Check for Project GDB
-                var try_gdbexists = await GDBExists_Project();
-                if (!try_gdbexists.exists)
-                {
-                    return (false, null, "Project GDB not found.");
-                }
+                string element_filepath = Path.Combine(input_folder, $"{trygetname.table_name}.bin");
 
                 // Verify that table exists in project GDB
-                if (!(await TableExists_Project(table_name)).exists)
+                if (!File.Exists(element_filepath))
                 {
-                    return (false, null, $"Element table {table_name} not found in project geodatabase");
+                    return (false, null, $"Element table {trygetname.table_name} not found in project geodatabase");
                 }
 
-                // Get the dictionary of Cell Numbers > PUIDs
-                var outcome = await GetCellNumbersAndPUIDs();
-                if (!outcome.success)
+                // Read in element dictionary
+                var tryread = ReadBinary(element_filepath);
+
+                if (!tryread.success)
                 {
-                    return (false, null, $"Unable to retrieve Cell Number dictionary\n{outcome.message}");
+                    return (false, null, $"Could not read element binary file. Message: {tryread.message}");
                 }
-                Dictionary<long, int> cellnumdict = outcome.dict;
+
+                Dictionary<long, double> element_dict_cellnum = (Dictionary<long, double>)tryread.obj;
 
                 // Create the dictionary
-                Dictionary<int, double> dict = new Dictionary<int, double>();
+                Dictionary<int, double> element_dict_puid = new Dictionary<int, double>(element_dict_cellnum.Count());
 
-                // Populate the dictionary
-                (bool success, string message) result = await QueuedTask.Run(() =>
+                // Translate dictionary key to PUID
+                foreach(KeyValuePair<long, double> entry in element_dict_cellnum)
                 {
-                    var tryget = GetTable_Project(table_name);
-                    if (!tryget.success)
+                    if(cellnumdict.ContainsKey(entry.Key))
                     {
-                        throw new Exception("Error retrieving table.");
+                        element_dict_puid.Add(cellnumdict[entry.Key], entry.Value);
                     }
-
-                    using (Table table = tryget.table)
-                    using (RowCursor rowCursor = table.Search())
+                    else
                     {
-                        while (rowCursor.MoveNext())
-                        {
-                            using (Row row = rowCursor.Current)
-                            {
-                                long cellnum = Convert.ToInt64(row[PRZC.c_FLD_TAB_NAT_ELEMVAL_CELL_NUMBER]);
-                                double cellval = Convert.ToDouble(row[PRZC.c_FLD_TAB_NAT_ELEMVAL_CELL_VALUE]);
-
-                                if (cellnum > 0)
-                                {
-                                    if (cellnumdict.ContainsKey(cellnum))
-                                    {
-                                        int puid = cellnumdict[cellnum];
-
-                                        if (puid > 0 && !dict.ContainsKey(puid))
-                                        {
-                                            dict.Add(puid, cellval);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        return (false, $"No matching puid for cell number {cellnum}");
-                                    }
-                                }
-                            }
-                        }
+                        return (false, null, "Element dictionary contains cell ids outside study area. Please re-run National Data Load.");
                     }
-
-                    return (true, "success");
-                });
-
-                if (result.success)
-                {
-                    return (true, dict, "success");
                 }
-                else
-                {
-                    return (false, null, result.message);
-                }
+
+                return (true, element_dict_puid, "success");
             }
             catch (Exception ex)
             {
@@ -7704,6 +7760,47 @@ namespace NCC.PRZTools
         #endregion
 
         #region MISCELLANEOUS
+
+        public static (bool success, string message) WriteBinary(object obj, string path)
+        {
+            try
+            {
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                var fi = new System.IO.FileInfo(path);
+
+                using (var binaryFile = fi.Create())
+                {
+                    binaryFormatter.Serialize(binaryFile, obj);
+                    binaryFile.Flush();
+                }
+
+                return (true, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to write {path}. Message={ex.Message}");
+            }
+        }
+
+        public static (bool success, object obj, string message) ReadBinary(string path)
+        {
+            try
+            {
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                var fi = new System.IO.FileInfo(path);
+
+                using (var binaryFile = fi.OpenRead())
+                {
+                    var obj = binaryFormatter.Deserialize(binaryFile);
+
+                    return (true, obj, "success");
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, null, $"Failed to read {path}. Message={ex.Message}");
+            }
+        }
 
         public static (bool ValueFound, int Value, string AdjustedString) ExtractValueFromString(string string_to_search, string regex_pattern)
         {

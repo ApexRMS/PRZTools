@@ -229,10 +229,18 @@
         public const string c_DIR_REGDATA_WEIGHTS = "WEIGHTS";
         public const string c_DIR_REGDATA_INCLUDES = "INCLUDES";
         public const string c_DIR_REGDATA_EXCLUDES = "EXCLUDES";
+        public const string c_DIR_PRZ_ELEMENTS = "elements";
+        public const string c_DIR_NATDATA_ELEMENTS = "national";
+        public const string c_DIR_REGDATA_ELEMENTS = "regional";
+        public const string c_DIR_PRZ_METADATA = "metadata";
+
 
         // PROJECT FILES
         public const string c_FILE_PRZ_LOG = "PRZ.log";
         public const string c_FILE_PRZ_FGDB = "PRZ.gdb";         // Technically this is a folder, but lets treat it as a file here
+
+        // METADATA Files
+        public const string c_FILE_METADATA_TILES = "tiles.bin";
 
         // EXPORT WTW FILES
         public const string c_FILE_WTW_EXPORT_SPATIAL = "WTW_SPATIAL";

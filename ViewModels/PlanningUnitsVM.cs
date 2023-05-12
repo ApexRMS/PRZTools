@@ -13,6 +13,7 @@ using ArcGIS.Desktop.Mapping;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -1308,6 +1309,7 @@ namespace NCC.PRZTools
 
                 // Validation: Ensure the Project Geodatabase Exists
                 string gdbpath = PRZH.GetPath_ProjectGDB();
+                string metadata_folder_path = PRZH.GetPath_ProjectMetadataFolder();
                 var try_gdbexists = await PRZH.GDBExists_Project();
 
                 if (!try_gdbexists.exists)
@@ -1675,6 +1677,13 @@ namespace NCC.PRZTools
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleted all objects from {gdbpath}."), true, ++val);
                 }
 
+                // Reset metadata folder
+                if (Directory.Exists(metadata_folder_path))
+                {
+                    Directory.Delete(metadata_folder_path, true);
+                }
+                Directory.CreateDirectory(metadata_folder_path);
+
                 #endregion
 
                 PRZH.CheckForCancellation(token);
@@ -2011,10 +2020,6 @@ namespace NCC.PRZTools
 
                 PRZH.CheckForCancellation(token);
 
-                // TODO: Remove if unneeded
-                // Create "Accelerated" Buffer
-                //Polygon speedy_buffer = (Polygon)GeometryEngine.Instance.AccelerateForRelationalOperations(SA_poly_buffer);
-
                 // Create dictionary of pu ids and associated national grid cell numbers
                 Dictionary<int, long> DICT_PUID_and_cellnums = new Dictionary<int, long>();
 
@@ -2193,6 +2198,21 @@ namespace NCC.PRZTools
                     {
                         PRZH.UpdateProgress(PM, PRZH.WriteLog($"Statistics calculated successfully."), true, ++val);
                     }
+
+                    // Identify national grid tiles that overlap study area
+                    Dictionary<int, HashSet<long>> tiles_dict = NationalGrid.GetTilesFromCells(new HashSet<long>(DICT_PUID_and_cellnums.Values));
+                    HashSet<int> tiles = new HashSet<int>(tiles_dict.Keys);
+
+                    // Save tile list to metadata folder
+                    var trywrite_tiles = PRZH.WriteBinary(tiles, PRZH.GetPath_ProjectTilesMetadataPath());
+                    if (!trywrite_tiles.success)
+                    {
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error writing study area tiles.", LogMessageType.ERROR), true, ++val);
+                        ProMsgBox.Show("Error writing study area tiles");
+                        return;
+                    }
+
+                    PRZH.CheckForCancellation(token);
                 });
 
                 // Ensure raster is present
@@ -2853,19 +2873,3 @@ namespace NCC.PRZTools
 
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
