@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -763,180 +764,103 @@ namespace NCC.PRZTools
 
                 #region RETRIEVE INTERSECTING ELEMENTS
 
-                // Get the cell_numbers and associated puids
-                var tryget_cnpuid = await PRZH.GetCellNumbersAndPUIDs();
-                if (!tryget_cnpuid.success)
+                // Construct dictionary of planning units / national grid ids
+                var outcome = await PRZH.GetCellNumbersAndPUIDs();
+                if (!outcome.success)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Unable to retrieve cell number and puid dictionary", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Unable to retrieve cell number and puid dictionary");
-                    return (false, "error retrieving dictionary.");
+                    throw new Exception("Error constructing PUID dictionary, try rebuilding planning units.");
                 }
+                Dictionary<long, int> study_area_cells = outcome.dict;
 
-                var DICT_CN_and_PUIDs = tryget_cnpuid.dict;
-                var HASH_CellNumbers = new HashSet<long>(DICT_CN_and_PUIDs.Keys);
+                // Load tile metadata for study area and national database
+                var tryread_studyarea_tiles = PRZH.ReadBinary(PRZH.GetPath_ProjectTilesMetadataPath());
+                var tryread_natdata_tiles = PRZH.ReadBinary(PRZH.GetPath_NationalDatabaseElementsTileMetadataPath());
 
-                PRZH.CheckForCancellation(token);
-
-                List<int> elements_with_intersection = new List<int>();
-                HashSet<int> themes_with_intersection = new HashSet<int>();
-
-                foreach (var element in elements)
+                if (!tryread_studyarea_tiles.success)
                 {
-                    // Attempt to retrieve intersection dictionary
-                    var tryget_elemintersect = await PRZH.GetNatElementIntersection(element.ElementID, HASH_CellNumbers);
-
-                    if (!tryget_elemintersect.success)
-                    {
-                        // Failed, exit
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Unable to retrieve values from the {element.ElementTable} table.\n{tryget_elemintersect.message}", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Unable to retrieve values from the {element.ElementTable} table.\n{tryget_elemintersect.message}");
-                        return (false, "error getting element intersections.");
-                    }
-                    else if (tryget_elemintersect.dict.Count == 0)
-                    {
-                        // No intersection, continue
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"{element.ElementTable} table: no intersection."), true, ++val);
-                        continue;
-                    }
-                    else
-                    {
-                        // Intersection found, deal with it
-                        elements_with_intersection.Add(element.ElementID);
-
-                        if (element.ThemeID > 0)
-                        {
-                            themes_with_intersection.Add(element.ThemeID);
-                        }
-
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"{element.ElementTable} table: intersection with {tryget_elemintersect.dict.Count} planning units."), true, ++val);
-                    }
-                    var DICT_ElemIntersect = tryget_elemintersect.dict;
-
-                    PRZH.CheckForCancellation(token);
-
-                    // Create the table
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Creating the {element.ElementTable} table..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(gdbpath, element.ElementTable, "", "", "Element " + element.ElementID.ToString(PRZH.CurrentGeodatabaseElementTableNameFormat));
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
-                    toolOutput = await PRZH.RunGPTool("CreateTable_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {element.ElementTable} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error creating the {element.ElementTable} table.");
-                        return (false, "error writing element table.");
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Created the {element.ElementTable} table."), true, ++val);
-                    }
-
-                    PRZH.CheckForCancellation(token);
-
-                    // Add fields to the table
-                    string fldPUID = PRZC.c_FLD_FC_PU_ID + " LONG 'Planning Unit ID' # 0 #;";
-                    string fldCellNum = PRZC.c_FLD_TAB_NAT_ELEMVAL_CELL_NUMBER + " LONG 'Cell Number' # 0 #;";
-                    string fldCellVal = PRZC.c_FLD_TAB_NAT_ELEMVAL_CELL_VALUE + " DOUBLE 'Cell Value' # 0 #;";
-
-                    string fields = fldPUID + fldCellNum + fldCellVal;
-
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Adding fields to the {element.ElementTable} table..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(element.ElementTable, fields);
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
-                    toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to the {element.ElementTable} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error adding fields to the {element.ElementTable} table.");
-                        return (false, "error adding fields.");
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Fields added successfully."), true, ++val);
-                    }
-
-                    PRZH.CheckForCancellation(token);
-
-                    // Populate the table
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the {element.ElementTable} table.."), true, ++val);
-                    await QueuedTask.Run(() =>
-                    {
-                        var tryget_gdb = PRZH.GetGDB_Project();
-
-                        using (Geodatabase geodatabase = tryget_gdb.geodatabase)
-                        using (Table table = geodatabase.OpenDataset<Table>(element.ElementTable))
-                        using (InsertCursor insertCursor = table.CreateInsertCursor())
-                        using (RowBuffer rowBuffer = table.CreateRowBuffer())
-                        {
-                            geodatabase.ApplyEdits(() =>
-                            {
-                                int flusher = 0;
-
-                                foreach (var kvp in DICT_ElemIntersect)
-                                {
-                                    rowBuffer[PRZC.c_FLD_TAB_NAT_ELEMVAL_CELL_NUMBER] = kvp.Key;
-                                    rowBuffer[PRZC.c_FLD_TAB_NAT_ELEMVAL_CELL_VALUE] = kvp.Value;
-
-                                    if (DICT_CN_and_PUIDs.ContainsKey(kvp.Key))
-                                    {
-                                        rowBuffer[PRZC.c_FLD_TAB_NAT_ELEMVAL_PU_ID] = DICT_CN_and_PUIDs[kvp.Key];
-                                    }
-
-                                    insertCursor.Insert(rowBuffer);
-
-                                    flusher++;
-
-                                    if (flusher == 10000)
-                                    {
-                                        insertCursor.Flush();
-                                        flusher = 0;
-                                    }
-                                }
-
-                                insertCursor.Flush();
-                            });
-                        }
-                    });
-
-                    PRZH.CheckForCancellation(token);
-
-                    // index the cell number field
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Indexing {PRZC.c_FLD_TAB_NAT_ELEMVAL_CELL_NUMBER} field in the {element.ElementTable} table..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(element.ElementTable, PRZC.c_FLD_TAB_NAT_ELEMVAL_CELL_NUMBER, "ix" + PRZC.c_FLD_TAB_NAT_ELEMVAL_CELL_NUMBER, "", "");
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
-                    toolOutput = await PRZH.RunGPTool("AddIndex_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show("Error indexing field.");
-                        return (false, "error indexing field.");
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Field indexed successfully."), true, ++val);
-                    }
-
-                    // index the puid field
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Indexing {PRZC.c_FLD_TAB_NAT_ELEMVAL_PU_ID} field in the {element.ElementTable} table..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(element.ElementTable, PRZC.c_FLD_TAB_NAT_ELEMVAL_PU_ID, "ix" + PRZC.c_FLD_TAB_NAT_ELEMVAL_PU_ID, "", "");
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
-                    toolOutput = await PRZH.RunGPTool("AddIndex_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show("Error indexing field.");
-                        return (false, "error indexing field.");
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Field indexed successfully."), true, ++val);
-                    }
+                    throw new Exception(tryread_studyarea_tiles.message);
                 }
+                HashSet<int> study_area_tiles = (HashSet<int>)tryread_studyarea_tiles.obj;
 
-                #endregion
+                if (!tryread_natdata_tiles.success)
+                {
+                    throw new Exception(tryread_natdata_tiles.message);
+                }
+                Dictionary<int, HashSet<int>> natdata_tiles = (Dictionary<int, HashSet<int>>)tryread_natdata_tiles.obj;
 
-                PRZH.CheckForCancellation(token);
+                // Setup up lists to track which elements and themes are present
+                HashSet<int> elements_present = new HashSet<int>();
+                HashSet<int> themes_present = new HashSet<int>();
 
-                #region UPDATE THE LOCAL ELEMENT TABLE PRESENCE FIELD
+                // Refresh project-scope elements folder
+                string output_elements_folder = PRZH.GetPath_ProjectNationalElementsSubfolder();
+                if(Directory.Exists(output_elements_folder))
+                {
+                    Directory.Delete(output_elements_folder, true);
+                }
+                Directory.CreateDirectory(output_elements_folder);
+
+                // Find intersecting cells
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Finding intersecting cells in National Database..."), true, ++val);
+                string input_elements_folder = PRZH.GetPath_NationalDatabaseElementsSubfolder();
+                int progress = 0;
+                var options = new ParallelOptions() { MaxDegreeOfParallelism = 3 };
+
+
+                Parallel.ForEach(elements, options, element =>
+                {
+                    progress++;
+                    if (progress % 100 == 0)
+                    {
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Processing national element {progress}/{elements.Count()}."), true, ++val);
+                    }
+
+                    // Determine which if any tiles overlap
+                    natdata_tiles[element.ElementID].IntersectWith(study_area_tiles);
+
+                    // Skip elements with no overlapping tiles
+                    if (natdata_tiles[element.ElementID].Count == 0)
+                        return;
+
+                    // Read in relevant element data tiles from national database
+                    Dictionary<long, double> element_cells = new Dictionary<long, double>();
+                    foreach (int tile_id in natdata_tiles[element.ElementID])
+                    {
+                        string tile_filepath = Path.Combine(input_elements_folder, $"{element.ElementTable}-{tile_id}.bin");
+                        var tryread_tile = PRZH.ReadBinary(tile_filepath);
+
+                        if (!tryread_tile.success)
+                        {
+                            throw new Exception(tryread_tile.message);
+                        }
+                        Dictionary<long, double> tile_cells = (Dictionary<long, double>)tryread_tile.obj;
+
+                        if (tile_cells.Count > 0)
+                        {
+                            element_cells = element_cells.Concat(tile_cells).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                        }
+                    }
+
+                    // Find cells that intersect study area
+                    Dictionary<long, double> intersecting_cells = element_cells.Where(x => study_area_cells.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+
+                    if (intersecting_cells.Count() > 0)
+                    {
+                        var trywrite = PRZH.WriteBinary(intersecting_cells, $"{Path.Combine(output_elements_folder, element.ElementTable)}.bin");
+
+                        if (!trywrite.success)
+                        {
+                            throw new Exception(trywrite.message);
+                        }
+                    }
+                });
+
+                // Identify elements that are present by id
+                foreach(string f in Directory.GetFiles(output_elements_folder))
+                {
+                    int element_id = Convert.ToInt32(Path.GetFileNameWithoutExtension(f).Substring(1));
+                    elements_present.Add(element_id);
+                }
 
                 // Update the table
                 PRZH.UpdateProgress(PM, PRZH.WriteLog($"Updating the {PRZC.c_TABLE_NATPRJ_ELEMENTS} table {PRZC.c_FLD_TAB_NATELEMENT_PRESENCE} field..."), true, ++val);
@@ -954,11 +878,14 @@ namespace NCC.PRZTools
                             {
                                 using (Row row = rowCursor.Current)
                                 {
-                                    int element_id = Convert.ToInt32(row[PRZC.c_FLD_TAB_NATELEMENT_ELEMENT_ID]);
-
-                                    if (elements_with_intersection.Contains(element_id))
+                                    if (elements_present.Contains((int)row[PRZC.c_FLD_TAB_NATELEMENT_ELEMENT_ID]))
                                     {
                                         row[PRZC.c_FLD_TAB_NATELEMENT_PRESENCE] = (int)ElementPresence.Present;
+                                        int theme_id = (int)row[PRZC.c_FLD_TAB_NATELEMENT_THEME_ID];
+                                        if(!themes_present.Contains(theme_id))
+                                        {
+                                            themes_present.Add(theme_id);
+                                        }
                                     }
                                     else
                                     {
@@ -994,9 +921,9 @@ namespace NCC.PRZTools
                             {
                                 using (Row row = rowCursor.Current)
                                 {
-                                    int theme_id = Convert.ToInt32(row[PRZC.c_FLD_TAB_NATTHEME_THEME_ID]);
+                                    int theme_id = (int)row[PRZC.c_FLD_TAB_NATTHEME_THEME_ID];
 
-                                    if (themes_with_intersection.Contains(theme_id))
+                                    if (themes_present.Contains(theme_id))
                                     {
                                         row[PRZC.c_FLD_TAB_NATTHEME_PRESENCE] = (int)ElementPresence.Present;
                                     }
@@ -1018,7 +945,7 @@ namespace NCC.PRZTools
 
                 #region UPDATE REGIONAL THEME DOMAIN
 
-                Dictionary<int, string> national_values = new Dictionary<int, string>();
+/*                Dictionary<int, string> national_values = new Dictionary<int, string>();
                 foreach (NatTheme theme in themes)
                 {
                     if (theme.ThemeID <= 1000)
@@ -1034,7 +961,7 @@ namespace NCC.PRZTools
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error updating regional themes domain", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error updating regional themes domain.");
                     return (false, "error updating domain.");
-                }
+                }*/
 
                 #endregion
 

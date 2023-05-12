@@ -307,45 +307,20 @@ namespace NCC.PRZTools
 
                 #region VALIDATE NATIONAL AND REGIONAL ELEMENT DATA
 
-                // Get national element tables
-                var tryget_nattables = await PRZH.GetNationalElementTables();
-                if (!tryget_nattables.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving list of national element tables.\n{tryget_nattables.message}", LogMessageType.VALIDATION_ERROR), true, ++val);
-                    ProMsgBox.Show($"Error retrieving list of national element tables.\n{tryget_nattables.message}");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Found {tryget_nattables.tables.Count} national element tables"), true, ++val);
-                }
+                // Check for national element tables
+                int nattables_present = Directory.GetFiles(PRZH.GetPath_ProjectNationalElementsSubfolder(), "*.bin").Count();
+                int regtables_present = 0; //TODO: Decide where to store reg element tables, update assignment accordingly
 
-                // Get regional element tables
-                var tryget_regtables = await PRZH.GetRegionalElementTables();
-                if (!tryget_regtables.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving list of regional element tables.\n{tryget_regtables.message}", LogMessageType.VALIDATION_ERROR), true, ++val);
-                    ProMsgBox.Show($"Error retrieving list of regional element tables.\n{tryget_regtables.message}");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Found {tryget_regtables.tables.Count} regional element tables"), true, ++val);
-                }
-
-                List<string> LIST_elemtables_nat = tryget_nattables.tables;
-                List<string> LIST_elemtables_reg = tryget_regtables.tables;
-
-                if (LIST_elemtables_nat.Count == 0 & LIST_elemtables_reg.Count == 0)
+                if (nattables_present == 0 & regtables_present == 0)
                 {
                     // there are no national or regional element tables, stop!
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"No national or regional element tables found.  Unable to proceed.", LogMessageType.VALIDATION_ERROR), true, ++val);
-                    ProMsgBox.Show($"No national or regional element tables found.  Unable to proceed.");
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"No national or regional elements intersect study area.  Unable to proceed.", LogMessageType.VALIDATION_ERROR), true, ++val);
+                    ProMsgBox.Show($"No national or regional elements intersect study area.  Unable to proceed.");
                     return;
                 }
                 else
                 {
-                    string m = $"National element tables: {LIST_elemtables_nat.Count}\nRegional element tables: {LIST_elemtables_reg.Count}";
+                    string m = $"National element tables: {nattables_present}\nRegional element tables: {regtables_present}";
                     PRZH.UpdateProgress(PM, PRZH.WriteLog(m), true, ++val);
                 }
 
@@ -370,17 +345,6 @@ namespace NCC.PRZTools
                 stopwatch.Start();
 
                 #endregion
-
-                PRZH.CheckForCancellation(token);
-
-                // Build Boundary Lengths Table
-                var trybuild = await BuildBoundaryLengthsTable(token);
-                if (!trybuild.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building the boundary lengths table\n{trybuild.message}", LogMessageType.VALIDATION_ERROR), true, ++val);
-                    ProMsgBox.Show($"error building the boundary lengths table.\n{trybuild.message}");
-                    return;
-                }
 
                 PRZH.CheckForCancellation(token);
 
@@ -448,6 +412,19 @@ namespace NCC.PRZTools
 
                 PRZH.CheckForCancellation(token);
 
+                #region Build Boundary Lengths Table
+                var trybuild = await BuildBoundaryLengthsTable(token);
+                if (!trybuild.success)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building the boundary lengths table\n{trybuild.message}", LogMessageType.VALIDATION_ERROR), true, ++val);
+                    ProMsgBox.Show($"error building the boundary lengths table.\n{trybuild.message}");
+                    return;
+                }
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
                 #region GET PUID LIST
 
                 // Get the Planning Unit IDs
@@ -479,7 +456,7 @@ namespace NCC.PRZTools
                 List<NatElement> nat_excludes = new List<NatElement>();
 
                 // If there's at least a single table, populate the lists
-                if (LIST_elemtables_nat.Count > 0)
+                if (nattables_present > 0)
                 {
                     // Get the National Themes
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving national themes..."), true, ++val);
@@ -569,7 +546,7 @@ namespace NCC.PRZTools
                 List<RegElement> reg_excludes = new List<RegElement>();
 
                 // If there's at least a single table, populate the lists
-                if (LIST_elemtables_reg.Count > 0)
+                if (regtables_present > 0)
                 {
                     // Get the Regional Themes
                     var tryget_regThemes = await PRZH.GetRegionalThemesDomainKVPs();
@@ -665,6 +642,16 @@ namespace NCC.PRZTools
 
                 // Get the Goal Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
                 PRZH.UpdateProgress(PM, PRZH.WriteLog($"Populating the Goals dictionary ({nat_goals.Count} goals)..."), true, ++val);
+
+                // Construct dictionary of planning units / national grid ids
+                var outcome = await PRZH.GetCellNumbersAndPUIDs();
+                if (!outcome.success)
+                {
+                    throw new Exception("Error constructing PUID dictionary, try rebuilding planning units.");
+                }
+                Dictionary<long, int> cellnumdict = outcome.dict;
+                string element_dict_folder = PRZH.GetPath_ProjectNationalElementsSubfolder();
+
                 Dictionary<int, Dictionary<int, double>> DICT_NatGoals = new Dictionary<int, Dictionary<int, double>>();
                 for (int i = 0; i < nat_goals.Count; i++)
                 {
@@ -672,7 +659,7 @@ namespace NCC.PRZTools
                     NatElement goal = nat_goals[i];
 
                     // Get the values dictionary for this goal
-                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(goal.ElementID);
+                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(goal.ElementID, cellnumdict, element_dict_folder);
                     if (getvals_outcome.success)
                     {
                         // Store dictionary in Goals dictionary
@@ -696,7 +683,7 @@ namespace NCC.PRZTools
                     NatElement weight = nat_weights[i];
 
                     // Get the values dictionary for this weight
-                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(weight.ElementID);
+                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(weight.ElementID, cellnumdict, element_dict_folder);
                     if (getvals_outcome.success)
                     {
                         // Store dictionary in Weights dictionary
@@ -720,7 +707,7 @@ namespace NCC.PRZTools
                     NatElement include = nat_includes[i];
 
                     // Get the values dictionary for this include
-                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(include.ElementID);
+                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(include.ElementID, cellnumdict, element_dict_folder);
                     if (getvals_outcome.success)
                     {
                         // Store dictionary in Includes dictionary
@@ -744,7 +731,7 @@ namespace NCC.PRZTools
                     NatElement exclude = nat_excludes[i];
 
                     // Get the values dictionary for this exclude
-                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(exclude.ElementID);
+                    var getvals_outcome = await PRZH.GetValuesFromNatElementTable_PUID(exclude.ElementID, cellnumdict, element_dict_folder);
                     if (getvals_outcome.success)
                     {
                         // Store dictionary in Excludes dictionary
