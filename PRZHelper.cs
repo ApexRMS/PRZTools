@@ -2587,9 +2587,10 @@ namespace NCC.PRZTools
 
                 // Create list
                 List<NatElement> elements = new List<NatElement>();
+                bool tableFormatChecked = false;
 
                 // Populate the list
-                await QueuedTask.Run(() =>
+                await QueuedTask.Run(async () =>
                 {
                     var tryget = GetTable_Project(PRZC.c_TABLE_NATPRJ_ELEMENTS);
                     if (!tryget.success)
@@ -2612,6 +2613,18 @@ namespace NCC.PRZTools
                                 int theme_id = Convert.ToInt32(row[PRZC.c_FLD_TAB_NATELEMENT_THEME_ID]);
                                 int elem_presence = Convert.ToInt32(row[PRZC.c_FLD_TAB_NATELEMENT_PRESENCE]);
                                 string unit = (string)row[PRZC.c_FLD_TAB_NATELEMENT_UNIT] ?? "";
+
+                                if (!tableFormatChecked)
+                                {
+                                    var try_setup_table_format = await SetElementTableNamingFormat(id);
+
+                                    if (!try_setup_table_format.success)
+                                    {
+                                        throw new Exception(try_setup_table_format.message);
+                                    }
+
+                                    tableFormatChecked = true;
+                                }
 
                                 if (id > 0 && elem_type > 0 && elem_status > 0 && theme_id > 0 && !string.IsNullOrEmpty(name))
                                 {
