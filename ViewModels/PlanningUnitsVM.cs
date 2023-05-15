@@ -1314,7 +1314,7 @@ namespace NCC.PRZTools
 
                 if (!try_gdbexists.exists)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Project Geodatabase not found: {gdbpath}", LogMessageType.VALIDATION_ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Project Geodatabase not found: '{gdbpath}'.", LogMessageType.VALIDATION_ERROR), true, ++val);
                     ProMsgBox.Show($"Project Geodatabase not found at {gdbpath}.");
                     return;
                 }
@@ -1627,14 +1627,12 @@ namespace NCC.PRZTools
                                    Environment.NewLine + Environment.NewLine +
                                    "If you proceed, all tables and feature classes in the PRZ File Geodatabase WILL BE DELETED!!" +
                                    Environment.NewLine + Environment.NewLine +
-                                   "Do you wish to proceed?" +
-                                   Environment.NewLine + Environment.NewLine +
-                                   "Choose wisely...",
-                                   "GEODATABASE OVERWRITE WARNING",
+                                   "Do you wish to proceed?",
+                                   "Overwrite Geodatabase?",
                                    System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                                    System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("User bailed out."), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("User cancelled operation."), true, ++val);
                     return;
                 }
 
@@ -1782,7 +1780,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CreateFeatureclass_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error creating study area feature class.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error creating study area feature class.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error creating study area feature class.");
                     return;
                 }
@@ -1807,7 +1805,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error adding fields to study area feature class.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error adding fields to study area feature class.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error adding fields to study area feature class.");
                     return;
                 }
@@ -1857,7 +1855,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CreateFeatureclass_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error creating buffered study area feature class.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error creating buffered study area feature class.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error creating buffered study area feature class.");
                     return;
                 }
@@ -1882,7 +1880,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error adding fields to buffered study area feature class.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error adding fields to buffered study area feature class.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error adding fields to buffered study area feature class.");
                     return;
                 }
@@ -1989,7 +1987,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CreateConstantRaster_sa", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_RAS_TEMP_1} raster dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_RAS_TEMP_1} raster dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error creating the {PRZC.c_RAS_TEMP_1} raster dataset.");
                     return;
                 }
@@ -2011,7 +2009,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CopyRaster_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error copying the {PRZC.c_RAS_PLANNING_UNITS} raster dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error copying the {PRZC.c_RAS_PLANNING_UNITS} raster dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error copying the {PRZC.c_RAS_PLANNING_UNITS} raster dataset.");
                     return;
                 }
@@ -2138,7 +2136,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("ExtractByMask_sa", toolParams, toolEnvs, toolFlags_GP);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error masking the {PRZC.c_RAS_PLANNING_UNITS} raster dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error masking the {PRZC.c_RAS_PLANNING_UNITS} raster dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error copying the {PRZC.c_RAS_PLANNING_UNITS} raster dataset.");
                         return;
                     }
@@ -2156,7 +2154,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting temp rasters.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting temp rasters.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error deleting temp rasters.");
                         return;
                     }
@@ -2174,7 +2172,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("BuildPyramids_management", toolParams, toolEnvs, toolFlags_GP);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building pyramids.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building pyramids.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error building pyramids.");
                         return;
                     }
@@ -2192,7 +2190,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("CalculateStatistics_management", toolParams, toolEnvs, toolFlags_GP);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating statistics.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating statistics.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error calculating statistics.");
                         return;
                     }
@@ -2235,7 +2233,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("BuildRasterAttributeTable_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error Building the raster attribute table for the {PRZC.c_RAS_PLANNING_UNITS} raster.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error Building the raster attribute table for the {PRZC.c_RAS_PLANNING_UNITS} raster.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error Building the raster attribute table for the {PRZC.c_RAS_PLANNING_UNITS} raster.");
                     return;
                 }
@@ -2265,7 +2263,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to {PRZC.c_RAS_PLANNING_UNITS} raster attribute table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to {PRZC.c_RAS_PLANNING_UNITS} raster attribute table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error adding fields to {PRZC.c_RAS_PLANNING_UNITS} raster attribute table.");
                     return;
                 }
@@ -2330,7 +2328,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("AddIndex_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error indexing field.");
                     return;
                 }
@@ -2350,7 +2348,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("AddIndex_management", toolParams, toolEnvs, toolFlags_GP);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show("Error indexing field.");
                         return;
                     }
@@ -2375,7 +2373,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("RasterToPolygon_conversion", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error converting raster to feature class.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error converting raster to feature class.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error converting raster to feature class.");
                     return;
                 }
@@ -2393,7 +2391,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("DeleteField_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting fields.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting fields.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error deleting fields.");
                     return;
                 }
@@ -2413,7 +2411,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to {PRZC.c_FC_PLANNING_UNITS} feature class.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to {PRZC.c_FC_PLANNING_UNITS} feature class.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error adding fields to {PRZC.c_FC_PLANNING_UNITS} feature class.");
                     return;
                 }
@@ -2431,7 +2429,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CalculateField_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating {PRZC.c_FLD_FC_PU_ID} field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating {PRZC.c_FLD_FC_PU_ID} field.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error calculating {PRZC.c_FLD_FC_PU_ID} field.");
                     return;
                 }
@@ -2492,7 +2490,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("DeleteField_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting field.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error deleting field.");
                     return;
                 }
@@ -2510,7 +2508,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("AddIndex_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error indexing field.");
                     return;
                 }
@@ -2530,7 +2528,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("AddIndex_management", toolParams, toolEnvs, toolFlags_GP);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Error indexing field.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show("Error indexing field.");
                         return;
                     }
@@ -2557,7 +2555,7 @@ namespace NCC.PRZTools
                 //toolOutput = await PRZH.RunGPTool("CreateFeatureDataset_management", toolParams, toolEnvs, toolFlags_GP | GPExecuteToolFlags.AddToHistory);
                 //if (toolOutput == null)
                 //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating feature dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                //    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating feature dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                 //    ProMsgBox.Show($"Error creating feature dataset.");
                 //    return;
                 //}
@@ -2577,7 +2575,7 @@ namespace NCC.PRZTools
                 //toolOutput = await PRZH.RunGPTool("CreateFeatureDataset_management", toolParams, toolEnvs, toolFlags_GP | GPExecuteToolFlags.AddToHistory);
                 //if (toolOutput == null)
                 //{
-                //    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating feature dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                //    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating feature dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                 //    ProMsgBox.Show($"Error creating feature dataset.");
                 //    return;
                 //}
@@ -2598,7 +2596,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("Compact_management", toolParams, null, toolFlags_GPRefresh);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error compacting the geodatabase. GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error compacting the geodatabase. GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error compacting the geodatabase.");
                     return;
                 }

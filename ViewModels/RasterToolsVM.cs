@@ -250,7 +250,7 @@ namespace NCC.PRZTools
                 var outcome = await PRZH.GDBExists_RTScratch();
                 if (!outcome.exists)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Raster tools scratch geodatabase not found: {gdbpath}", LogMessageType.VALIDATION_ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Raster tools scratch geodatabase not found: '{gdbpath}'.", LogMessageType.VALIDATION_ERROR), true, ++val);
                     ProMsgBox.Show($"Raster tool scratch geodatabase not found at {gdbpath}.");
                     return false;
                 }
@@ -273,7 +273,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CreateConstantRaster_sa", toolParams, toolEnvs, toolFlags_GPRefresh);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_RAS_NATGRID_ZERO} raster dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_RAS_NATGRID_ZERO} raster dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error creating the {PRZC.c_RAS_NATGRID_ZERO} raster dataset.");
                     return false;
                 }
@@ -288,7 +288,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("Compact_management", toolParams, null, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error compacting the geodatabase. GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error compacting the geodatabase. GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error compacting the geodatabase.");
                     return false;
                 }
@@ -344,7 +344,7 @@ namespace NCC.PRZTools
                 var gdb_outcome = await PRZH.GDBExists_RTScratch();
                 if (!gdb_outcome.exists)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Raster tools scratch geodatabase not found: {gdbpath}", LogMessageType.VALIDATION_ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Raster tools scratch geodatabase not found: '{gdbpath}'.", LogMessageType.VALIDATION_ERROR), true, ++val);
                     ProMsgBox.Show($"Raster tool scratch geodatabase not found at {gdbpath}.");
                     return false;
                 }
@@ -367,7 +367,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CreateConstantRaster_sa", toolParams, toolEnvs, toolFlags_GPRefresh);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building dummy raster dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building dummy raster dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error building dummy raster dataset.");
                     return false;
                 }
@@ -377,7 +377,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting dummy raster dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting dummy raster dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error deleting dummy raster dataset.");
                     return false;
                 }
@@ -389,7 +389,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CreateConstantRaster_sa", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_RAS_TEMP_1} raster dataset.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_RAS_TEMP_1} raster dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error creating the {PRZC.c_RAS_TEMP_1} raster dataset.");
                     return false;
                 }
@@ -406,7 +406,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CopyRaster_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error copying {PRZC.c_RAS_TEMP_1} to {PRZC.c_RAS_TEMP_2}.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error copying {PRZC.c_RAS_TEMP_1} to {PRZC.c_RAS_TEMP_2}.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error copying {PRZC.c_RAS_TEMP_1} to {PRZC.c_RAS_TEMP_2}.");
                     return false;
                 }
@@ -535,7 +535,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CalculateStatistics_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating statistics.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error calculating statistics.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error calculating statistics.");
                     return false;
                 }
@@ -551,7 +551,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("BuildPyramids_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building pyramids.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error building pyramids.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error building pyramids.");
                     return false;
                 }
@@ -567,7 +567,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting temp rasters.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting temp rasters.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error deleting temp rasters.");
                     return false;
                 }
@@ -582,7 +582,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("Compact_management", toolParams, null, toolFlags_GPRefresh);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error compacting the geodatabase. GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error compacting the geodatabase. GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error compacting the geodatabase.");
                     return false;
                 }
