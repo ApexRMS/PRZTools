@@ -466,10 +466,8 @@ namespace NCC.PRZTools
 
                 // Prompt User for permission to proceed
                 if (ProMsgBox.Show("This action will reset your project folder and delete all data in the project geodatabase." + Environment.NewLine + Environment.NewLine +
-                   "Do you wish to proceed?" +
-                   Environment.NewLine + Environment.NewLine +
-                   "Choose wisely...",
-                   "RESET PROJECT FOLDER",
+                   "Do you wish to proceed?",
+                   "Reset Project Folder?",
                    System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                    System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                 {
@@ -621,10 +619,8 @@ namespace NCC.PRZTools
             {
                 // Prompt User for permission to proceed
                 if (ProMsgBox.Show("This will remove all entries from the project log file." + Environment.NewLine + Environment.NewLine +
-                   "Do you wish to proceed?" +
-                   Environment.NewLine + Environment.NewLine +
-                   "Choose wisely...",
-                   "Clear Log File",
+                   "Do you wish to proceed?",
+                   "Clear Log File?",
                    System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                    System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                 {

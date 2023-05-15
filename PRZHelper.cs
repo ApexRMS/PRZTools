@@ -28,6 +28,8 @@ namespace NCC.PRZTools
 {
     public static class PRZHelper
     {
+        public static string CurrentGeodatabaseElementTableNameFormat = "D5";
+
         #region LOGGING AND NOTIFICATIONS
 
         // Write to log
@@ -666,7 +668,7 @@ namespace NCC.PRZTools
                     // Ensure a rooted path
                     if (!Path.IsPathRooted(gdbpath))
                     {
-                        return (false, GeoDBType.Unknown, $"Path is not rooted: {gdbpath}");
+                        return (false, GeoDBType.Unknown, $"Path is not rooted: '{gdbpath}'.");
                     }
 
                     // Create the Uri object
@@ -678,7 +680,7 @@ namespace NCC.PRZTools
                     }
                     catch
                     {
-                        return (false, GeoDBType.Unknown, $"Unable to create Uri from path: {gdbpath}");
+                        return (false, GeoDBType.Unknown, $"Unable to create Uri from path: '{gdbpath}'.");
                     }
 
                     // Determine if path is file geodatabase (.gdb) or database connection file (.sde)
@@ -693,7 +695,7 @@ namespace NCC.PRZTools
                         }
                         catch
                         {
-                            return (false, GeoDBType.Unknown, $"Unable to create file geodatabase connection path from path: {gdbpath}");
+                            return (false, GeoDBType.Unknown, $"Unable to create file geodatabase connection path from path: '{gdbpath}'.");
                         }
 
                         // Try to open the connection
@@ -703,7 +705,7 @@ namespace NCC.PRZTools
                         }
                         catch
                         {
-                            return (false, GeoDBType.Unknown, $"File geodatabase could not be opened from path: {gdbpath}");
+                            return (false, GeoDBType.Unknown, $"File geodatabase could not be opened from path: '{gdbpath}'.");
                         }
 
                         // If I get to this point, the file gdb exists and was successfully opened
@@ -720,7 +722,7 @@ namespace NCC.PRZTools
                         }
                         catch
                         {
-                            return (false, GeoDBType.Unknown, $"Unable to create database connection file from path: {gdbpath}");
+                            return (false, GeoDBType.Unknown, $"Unable to create database connection file from path: '{gdbpath}'.");
                         }
 
                         // try to open the connection
@@ -730,7 +732,7 @@ namespace NCC.PRZTools
                         }
                         catch
                         {
-                            return (false, GeoDBType.Unknown, $"Enterprise geodatabase could not be opened from path: {gdbpath}");
+                            return (false, GeoDBType.Unknown, $"Enterprise geodatabase could not be opened from path: '{gdbpath}'.");
                         }
 
                         // If I get to this point, the enterprise geodatabase exists and was successfully opened
@@ -739,7 +741,7 @@ namespace NCC.PRZTools
                     else
                     {
                         // something else, weird!
-                        return (false, GeoDBType.Unknown, $"unable to process database path: {gdbpath}");
+                        return (false, GeoDBType.Unknown, $"unable to process database path: '{gdbpath}'.");
                     }
                 });
 
@@ -1402,13 +1404,13 @@ namespace NCC.PRZTools
                 // Ensure a rooted path
                 if (!Path.IsPathRooted(gdbpath))
                 {
-                    return (false, null, $"Path is not rooted: {gdbpath}");
+                    return (false, null, $"Path is not rooted: '{gdbpath}'.");
                 }
 
                 // Ensure the path is an existing directory
                 if (!Directory.Exists(gdbpath))
                 {
-                    return (false, null, $"Path is not a valid folder path.\n{gdbpath}");
+                    return (false, null, $"Path is not a valid folder path.\n'{gdbpath}'.");
                 }
 
                 // Create the Uri object
@@ -1420,7 +1422,7 @@ namespace NCC.PRZTools
                 }
                 catch
                 {
-                    return (false, null, $"Unable to create Uri from path: {gdbpath}");
+                    return (false, null, $"Unable to create Uri from path: '{gdbpath}'.");
                 }
 
                 // Create the Connection Path object
@@ -1432,7 +1434,7 @@ namespace NCC.PRZTools
                 }
                 catch
                 {
-                    return (false, null, $"Unable to create file geodatabase connection path from path: {gdbpath}");
+                    return (false, null, $"Unable to create file geodatabase connection path from path: '{gdbpath}'.");
                 }
 
                 // Create the Geodatabase object
@@ -2391,6 +2393,27 @@ namespace NCC.PRZTools
             }
         }
 
+        public static async Task<(bool success, string message)> SetElementTableNamingFormat(int element_id)
+        {
+            try
+            {
+                if ((await TableExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D5"))).exists)
+                {
+                    CurrentGeodatabaseElementTableNameFormat = "D5";
+                }
+                else if ((await TableExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D6"))).exists)
+                {
+                    CurrentGeodatabaseElementTableNameFormat = "D6";
+                }
+
+                return (true, null);
+            } catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return (false, ex.Message);
+            }
+        }
+
         #endregion
 
         #endregion
@@ -2408,13 +2431,13 @@ namespace NCC.PRZTools
         {
             try
             {
-                if (element_id > 99999 || element_id < 1)
+                if (element_id > 999999 || element_id < 1)
                 {
-                    throw new Exception($"Element ID {element_id} is out of range (1 to 99999)");
+                    throw new Exception($"Element ID {element_id} is out of range (1 to 999999)");
                 }
                 else
                 {
-                    return (true, PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D5"), "success");
+                    return (true, PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString(CurrentGeodatabaseElementTableNameFormat), "success");
                 }
             }
             catch (Exception ex)
@@ -2920,13 +2943,13 @@ namespace NCC.PRZTools
         {
             try
             {
-                if (element_id > 99999 || element_id < 1)
+                if (element_id > 999999 || element_id < 1)
                 {
-                    throw new Exception($"Element ID {element_id} is out of range (1 to 99999)");
+                    throw new Exception($"Element ID {element_id} is out of range (1 to 999999)");
                 }
                 else
                 {
-                    return (true, PRZC.c_TABLE_REGPRJ_PREFIX_ELEMENT + element_id.ToString("D5"), "success");
+                    return (true, PRZC.c_TABLE_REGPRJ_PREFIX_ELEMENT + element_id.ToString(CurrentGeodatabaseElementTableNameFormat), "success");
                 }
             }
             catch (Exception ex)
@@ -3436,17 +3459,11 @@ namespace NCC.PRZTools
 
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    return (false, value, "Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygettab = GetNationalElementTableName(element_id);
                 if (!trygettab.success)
                 {
-                    return (false, value, "Unable to retrieve element table name");
+                    return (false, value, trygettab.message);
                 }
 
                 string table_name = trygettab.table_name;
@@ -3542,18 +3559,12 @@ namespace NCC.PRZTools
 
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    return (false, value, "Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetNationalElementTableName(element_id);
 
                 if (!trygetname.success)
                 {
-                    return (false, value, "Unable to retrieve element table name");
+                    return (false, value, trygetname.message);
                 }
 
                 string table_name = trygetname.table_name;
@@ -3657,18 +3668,12 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    return (false, null, "Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetNationalElementTableName(element_id);
 
                 if (!trygetname.success)
                 {
-                    return (false, null, "Unable to retrieve element table name");
+                    return (false, null, trygetname.message);
                 }
 
                 string table_name = trygetname.table_name;
@@ -3735,17 +3740,11 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    return (false, null, "Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetNationalElementTableName(element_id);
                 if (!trygetname.success)
                 {
-                    return (false, null, "Unable to retrieve element table name");
+                    return (false, null, trygetname.message);
                 }
 
                 string element_filepath = Path.Combine(input_folder, $"{trygetname.table_name}.bin");
@@ -3801,17 +3800,11 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    throw new Exception("Element ID out of range (1 - 99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetNationalElementTableName(element_id);
                 if (!trygetname.success)
                 {
-                    throw new Exception("Unable to retrieve element table name");
+                    throw new Exception(trygetname.message);
                 }
                 string table_name = trygetname.table_name;  // unqualified table name
 
@@ -3888,18 +3881,12 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    throw new Exception("Element ID out of range (1-99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetRegionalElementTableName(element_id);
 
                 if (!trygetname.success)
                 {
-                    throw new Exception("Unable to retrieve regional element table name.");
+                    throw new Exception(trygetname.message);
                 }
 
                 string table_name = trygetname.table_name;
@@ -3966,18 +3953,12 @@ namespace NCC.PRZTools
         {
             try
             {
-                // Ensure valid element id
-                if (element_id < 1 || element_id > 99999)
-                {
-                    throw new Exception("Element ID out of range (1-99999)");
-                }
-
                 // Get element table name
                 var trygetname = GetRegionalElementTableName(element_id);
 
                 if (!trygetname.success)
                 {
-                    throw new Exception("Unable to retrieve regional element table name.");
+                    throw new Exception(trygetname.message);
                 }
 
                 string table_name = trygetname.table_name;
@@ -5663,7 +5644,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting relationship class(es). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting relationship class(es). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting relationship class(es).");
                     }
                     else
@@ -5681,7 +5662,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting feature dataset(s). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting feature dataset(s). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting feature dataset(s).");
                     }
                     else
@@ -5699,7 +5680,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting raster dataset(s). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting raster dataset(s). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting raster dataset(s).");
                     }
                     else
@@ -5717,7 +5698,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting feature class(es). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting feature class(es). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting feature class(es).");
                     }
                     else
@@ -5735,7 +5716,7 @@ namespace NCC.PRZTools
                     toolOutput = await RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                     if (toolOutput == null)
                     {
-                        WriteLog($"Error deleting table(s). GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                        WriteLog($"Error deleting table(s). GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                         return (false, "Error deleting table(s).");
                     }
                     else
@@ -5761,7 +5742,7 @@ namespace NCC.PRZTools
                             toolOutput = await RunGPTool("DeleteDomain_management", toolParams, toolEnvs, toolFlags_GPRefresh);
                             if (toolOutput == null)
                             {
-                                WriteLog($"Error deleting {domainName} domain. GP Tool failed or was cancelled by user", LogMessageType.ERROR);
+                                WriteLog($"Error deleting {domainName} domain. GP Tool failed or was cancelled by user.", LogMessageType.ERROR);
                                 return (false, $"Error deleting {domainName} domain.");
                             }
                             else

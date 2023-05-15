@@ -170,7 +170,7 @@ namespace NCC.PRZTools
 
                 if (!try_gdbexists.exists)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Validation >> Project Geodatabase not found: {gdbpath}", LogMessageType.VALIDATION_ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Validation >> Project Geodatabase not found: '{gdbpath}'.", LogMessageType.VALIDATION_ERROR), true, ++val);
                     ProMsgBox.Show("Project Geodatabase not found at this path:" +
                                    Environment.NewLine +
                                    gdbpath +
@@ -181,7 +181,7 @@ namespace NCC.PRZTools
                 }
                 else
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Validation >> Project Geodatabase is OK: {gdbpath}"), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Validation >> Project Geodatabase is OK: '{gdbpath}'."), true, ++val);
                 }
 
                 // Validation: Ensure that the Planning Unit FC exists
@@ -267,14 +267,12 @@ namespace NCC.PRZTools
                    Environment.NewLine + Environment.NewLine +
                    $"Additionally, the contents of the {PRZC.c_FLD_FC_PU_FEATURECOUNT} field in the {PRZC.c_FC_PLANNING_UNITS} Feature Class will be updated." +
                    Environment.NewLine + Environment.NewLine +
-                   "Do you wish to proceed?" +
-                   Environment.NewLine + Environment.NewLine +
-                   "Choose wisely...",
-                   "TABLE OVERWRITE WARNING",
+                   "Do you wish to proceed?",
+                   "Overwrite Feature tables and classes?",
                    System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                    System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("User bailed out."), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("User cancelled operation."), true, ++val);
                     return false;
                 }
 
@@ -325,8 +323,8 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user");
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
+                        ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user.");
                         return false;
                     }
                     else
@@ -342,7 +340,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CreateTable_management", toolParams, toolEnvs, toolFlags);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error creating the {PRZC.c_TABLE_FEATURES} table.");
                     return false;
                 }
@@ -393,7 +391,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error adding fields to the {PRZC.c_TABLE_FEATURES} table.");
                     return false;
                 }
@@ -480,7 +478,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_PUFEATURES} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_PUFEATURES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_PUFEATURES} table.");
                         return false;
                     }
@@ -497,7 +495,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CopyRows_management", toolParams, toolEnvs, toolFlags);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error copying planning unit attributes to {PRZC.c_TABLE_PUFEATURES} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error copying planning unit attributes to {PRZC.c_TABLE_PUFEATURES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error copying planning unit attributes to {PRZC.c_TABLE_PUFEATURES} table.");
                     return false;
                 }
@@ -562,7 +560,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("DeleteField_management", toolParams, toolEnvs, toolFlags);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting fields from {PRZC.c_TABLE_PUFEATURES} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting fields from {PRZC.c_TABLE_PUFEATURES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error deleting fields.");
                     return false;
                 }
@@ -578,7 +576,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("AddIndex_management", toolParams, toolEnvs, toolFlags);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error indexing the {PRZC.c_FLD_TAB_PUCF_ID} field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error indexing the {PRZC.c_FLD_TAB_PUCF_ID} field.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error indexing the {PRZC.c_FLD_TAB_PUCF_ID} field.");
                     return false;
                 }
@@ -596,7 +594,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding {PRZC.c_FLD_TAB_PUCF_FEATURECOUNT} field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding {PRZC.c_FLD_TAB_PUCF_FEATURECOUNT} field.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error adding {PRZC.c_FLD_TAB_PUCF_FEATURECOUNT} field.");
                     return false;
                 }
@@ -612,7 +610,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("CalculateField_management", toolParams, toolEnvs, toolFlags);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error Calculating {PRZC.c_FLD_TAB_PUCF_FEATURECOUNT} field.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error Calculating {PRZC.c_FLD_TAB_PUCF_FEATURECOUNT} field.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show($"Error Calculating {PRZC.c_FLD_TAB_PUCF_FEATURECOUNT} field.");
                     return false;
                 }
@@ -672,7 +670,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields for feature {cfid}.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields for feature {cfid}.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error adding fields for feature {cfid}.");
                         return false;
                     }
@@ -1028,7 +1026,7 @@ namespace NCC.PRZTools
                 toolOutput = await PRZH.RunGPTool("Compact_management", toolParams, null, toolFlags);
                 if (toolOutput == null)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error compacting the geodatabase. GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error compacting the geodatabase. GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                     ProMsgBox.Show("Error compacting the geodatabase.");
                     return false;
                 }
@@ -1116,7 +1114,7 @@ namespace NCC.PRZTools
                                              Environment.NewLine + Environment.NewLine +
                                              "Layer: " + L.Name + Environment.NewLine +
                                              "Minimum Threshold must be in the range 0 to 100 (inclusive)." + Environment.NewLine + Environment.NewLine +
-                                             "Click OK to skip this layer and continue, or click CANCEL to quit";
+                                             "Click OK to skip this layer and continue, or click CANCEL to quit.";
 
                             if (ProMsgBox.Show(message, "Layer Validation", System.Windows.MessageBoxButton.OKCancel,
                                                 System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.OK)
@@ -1161,7 +1159,7 @@ namespace NCC.PRZTools
                                              Environment.NewLine + Environment.NewLine +
                                              "Layer: " + L.Name + Environment.NewLine +
                                              "Goal must be in the range 0 to 100 (inclusive)." + Environment.NewLine + Environment.NewLine +
-                                             "Click OK to skip this layer and continue, or click CANCEL to quit";
+                                             "Click OK to skip this layer and continue, or click CANCEL to quit.";
 
                             if (ProMsgBox.Show(message, "Layer Validation", System.Windows.MessageBoxButton.OKCancel,
                                                 System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.OK)
@@ -1332,7 +1330,7 @@ namespace NCC.PRZTools
                                                              "Legend Group: " + UVGroup.Heading + " of " + Environment.NewLine + Environment.NewLine +
                                                              "Layer: " + FL.Name + Environment.NewLine +
                                                              "Threshold must be in the range 0 to 100 (inclusive)." + Environment.NewLine + Environment.NewLine +
-                                                             "Click OK to skip this group and continue, or click CANCEL to quit";
+                                                             "Click OK to skip this group and continue, or click CANCEL to quit.";
 
                                             if (ProMsgBox.Show(message, "Layer Validation", System.Windows.MessageBoxButton.OKCancel,
                                                                 System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.OK)
@@ -1377,7 +1375,7 @@ namespace NCC.PRZTools
                                                              "Legend Group: " + UVGroup.Heading + " of " + Environment.NewLine + Environment.NewLine +
                                                              "Layer: " + layer_name + Environment.NewLine +
                                                              "Goal must be in the range 0 to 100." + Environment.NewLine + Environment.NewLine +
-                                                             "Click OK to skip this layer and continue, or click CANCEL to quit";
+                                                             "Click OK to skip this layer and continue, or click CANCEL to quit.";
 
                                             if (ProMsgBox.Show(message, "Layer Validation", System.Windows.MessageBoxButton.OKCancel,
                                                                 System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.OK)
@@ -1428,7 +1426,7 @@ namespace NCC.PRZTools
                                                                  "Legend Class: " + UVClass.Label + " of " + Environment.NewLine + Environment.NewLine +
                                                                  "Layer: " + FL.Name + Environment.NewLine +
                                                                  "Threshold must be in the range 0 to 100 (inclusive)." + Environment.NewLine + Environment.NewLine +
-                                                                 "Click OK to skip this class and continue, or click CANCEL to quit";
+                                                                 "Click OK to skip this class and continue, or click CANCEL to quit.";
 
                                                 if (ProMsgBox.Show(message, "Layer Validation", System.Windows.MessageBoxButton.OKCancel,
                                                                     System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.OK)
@@ -1473,7 +1471,7 @@ namespace NCC.PRZTools
                                                                  "Legend Class: " + UVClass.Label + " of " + Environment.NewLine + Environment.NewLine +
                                                                  "Layer: " + layer_name + Environment.NewLine +
                                                                  "Goal must be in the range 0 to 100 (inclusive)." + Environment.NewLine + Environment.NewLine +
-                                                                 "Click OK to skip this layer and continue, or click CANCEL to quit";
+                                                                 "Click OK to skip this layer and continue, or click CANCEL to quit.";
 
                                                 if (ProMsgBox.Show(message, "Layer Validation", System.Windows.MessageBoxButton.OKCancel,
                                                                     System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.OK)
@@ -1594,7 +1592,7 @@ namespace NCC.PRZTools
                         {
                             string message = "Error validating the renderer for layer '" + L.Name + "'." +
                                              Environment.NewLine + Environment.NewLine +
-                                             "Click OK to skip this layer and continue, or click CANCEL to quit";
+                                             "Click OK to skip this layer and continue, or click CANCEL to quit.";
 
                             if (ProMsgBox.Show(message, "Layer Validation", System.Windows.MessageBoxButton.OKCancel,
                                                 System.Windows.MessageBoxImage.Question, System.Windows.MessageBoxResult.OK)
@@ -1854,7 +1852,7 @@ namespace NCC.PRZTools
                         toolOutput = await PRZH.RunGPTool("Intersect_analysis", toolParams, toolEnvs, toolFlags);
                         if (toolOutput == null)
                         {
-                            PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error intersecting feature {cfid} layer.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                            PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error intersecting feature {cfid} layer.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                             ProMsgBox.Show($"Error intersecting feature {cfid} layer.");
                             return false;
                         }
@@ -1873,7 +1871,7 @@ namespace NCC.PRZTools
                         toolOutput = await PRZH.RunGPTool("Dissolve_management", toolParams, toolEnvs, toolFlags);
                         if (toolOutput == null)
                         {
-                            PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error dissolving {intersect_fc_name}.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                            PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error dissolving {intersect_fc_name}.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                             ProMsgBox.Show($"Error dissolving {intersect_fc_name}.");
                             return false;
                         }
@@ -2017,7 +2015,7 @@ namespace NCC.PRZTools
                         toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags);
                         if (toolOutput == null)
                         {
-                            PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting temp feature classes.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                            PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting temp feature classes.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                             ProMsgBox.Show("Error deleting temp feature classes...");
                             return false;
                         }
@@ -2071,7 +2069,7 @@ namespace NCC.PRZTools
                         toolOutput = await PRZH.RunGPTool("ZonalStatisticsAsTable_sa", toolParams, toolEnvs, toolFlags);
                         if (toolOutput == null)
                         {
-                            PRZH.UpdateProgress(PM, PRZH.WriteLog("Error executing the Zonal Statistics as Table tool.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                            PRZH.UpdateProgress(PM, PRZH.WriteLog("Error executing the Zonal Statistics as Table tool.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                             ProMsgBox.Show("Error executing zonal statistics as table tool...");
                             return false;
                         }
@@ -2146,7 +2144,7 @@ namespace NCC.PRZTools
                         toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags);
                         if (toolOutput == null)
                         {
-                            PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {tabname} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                            PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {tabname} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                             ProMsgBox.Show($"Error deleting the {tabname} table.");
                             return false;
                         }
@@ -2358,14 +2356,12 @@ namespace NCC.PRZTools
                    $"1. The {PRZC.c_TABLE_FEATURES} and {PRZC.c_TABLE_PUFEATURES} tables will be deleted from the project geodatabase (if they exist)" + Environment.NewLine +
                    $"2. All values in the {PRZC.c_FLD_FC_PU_FEATURECOUNT} field in the {PRZC.c_FC_PLANNING_UNITS} feature class will be set to 0" +
                    Environment.NewLine + Environment.NewLine +
-                   "Do you wish to proceed?" +
-                   Environment.NewLine + Environment.NewLine +
-                   "Choose wisely...",
-                   "TABLE DELETE WARNING",
+                   "Do you wish to proceed?",
+                   "Delete Feature tables?",
                    System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                    System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("User bailed out."), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("User cancelled operation."), true, ++val);
                     return false;
                 }
 
@@ -2378,7 +2374,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_FEATURES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_FEATURES} table.");
                         return false;
                     }
@@ -2397,7 +2393,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_PUFEATURES} table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_PUFEATURES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_PUFEATURES} table.");
                         return false;
                     }

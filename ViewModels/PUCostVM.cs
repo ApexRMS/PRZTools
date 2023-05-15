@@ -489,14 +489,12 @@ namespace NCC.PRZTools
                 string match_count = (DICT_Updator.Count == 1) ? "1 matching planning unit ID found." : DICT_Updator.Count.ToString() + " matching planning unit IDs found.";
                 if (ProMsgBox.Show(match_count +
                    Environment.NewLine + Environment.NewLine +
-                   "Click OK to update the Planning Unit Feature Class cost field with matching values." +
-                   Environment.NewLine + Environment.NewLine +
-                   "Choose wisely...",
-                   "FIELD CALCULATE WARNING",
+                   "Click OK to update the Planning Unit Feature Class cost field with matching values, or click CANCEL to quit.",
+                   "Calculate Field?",
                    System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                    System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("User bailed out of Cost Import Process."), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("User cancelled out of Cost Import Process."), true, ++val);
                     return false;
                 }
 
@@ -625,14 +623,12 @@ namespace NCC.PRZTools
                     if (ProMsgBox.Show("If you proceed, the contents of the Cost field in the Planning Unit Feature Class will be overwritten." +
                        Environment.NewLine + Environment.NewLine +
                        Environment.NewLine + Environment.NewLine +
-                       "Do you wish to proceed?" +
-                       Environment.NewLine + Environment.NewLine +
-                       "Choose wisely...",
-                       "COLUMN OVERWRITE WARNING",
+                       "Do you wish to proceed?",
+                       "Overwrite Cost Field?",
                        System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                        System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("User bailed out of Cost Calculation."), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog("User cancelled out of Cost Calculation."), true, ++val);
                         return false;
                     }
 
@@ -669,14 +665,12 @@ namespace NCC.PRZTools
                     if (ProMsgBox.Show("If you proceed, the contents of the Cost field in the Planning Unit Feature Class will be overwritten." +
                        Environment.NewLine + Environment.NewLine +
                        Environment.NewLine + Environment.NewLine +
-                       "Do you wish to proceed?" +
-                       Environment.NewLine + Environment.NewLine +
-                       "Choose wisely...",
-                       "COLUMN OVERWRITE WARNING",
+                       "Do you wish to proceed?",
+                       "Overwrite Cost Field?",
                        System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                        System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("User bailed out of Cost Calculation."), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog("User cancelled out of Cost Calculation."), true, ++val);
                         return false;
                     }
 
@@ -739,14 +733,12 @@ namespace NCC.PRZTools
                     //if (ProMsgBox.Show("If you proceed, the contents of the Cost field in the Planning Unit Feature Class will be overwritten." +
                     //   Environment.NewLine + Environment.NewLine +
                     //   Environment.NewLine + Environment.NewLine +
-                    //   "Do you wish to proceed?" +
-                    //   Environment.NewLine + Environment.NewLine +
-                    //   "Choose wisely...",
-                    //   "COLUMN OVERWRITE WARNING",
+                    //   "Do you wish to proceed?",
+                    //   "Overwrite Cost Field?",
                     //   System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                     //   System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                     //{
-                    //    PRZH.UpdateProgress(PM, PRZH.WriteLog("User bailed out of Cost Calculation."), true, ++val);
+                    //    PRZH.UpdateProgress(PM, PRZH.WriteLog("User cancelled out of Cost Calculation."), true, ++val);
                     //    return false;
                     //}
 
@@ -807,7 +799,7 @@ namespace NCC.PRZTools
                         toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags);
                         if (toolOutput == null)
                         {
-                            PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting the Cost Stats table.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                            PRZH.UpdateProgress(PM, PRZH.WriteLog("Error deleting the Cost Stats table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                             return false;
                         }
                         else
@@ -823,7 +815,7 @@ namespace NCC.PRZTools
                     toolOutput = await PRZH.RunGPTool("ZonalStatisticsAsTable_sa", toolParams, toolEnvs, toolFlags);
                     if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Error executing the Zonal Statistics as Table tool.  GP Tool failed or was cancelled by user", LogMessageType.ERROR), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog("Error executing the Zonal Statistics as Table tool.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
                         return false;
                     }
                     else
@@ -994,14 +986,12 @@ namespace NCC.PRZTools
                     //string match_count = (DICT_Updator.Count == 1) ? "1 matching planning unit ID found." : DICT_Updator.Count.ToString() + " matching planning unit IDs found.";
                     //if (ProMsgBox.Show(match_count +
                     //   Environment.NewLine + Environment.NewLine +
-                    //   "Click OK to update the Planning Unit Feature Class cost field with matching values." +
-                    //   Environment.NewLine + Environment.NewLine +
-                    //   "Choose wisely...",
-                    //   "FIELD CALCULATE WARNING",
+                    //   "Click OK to update the Planning Unit Feature Class cost field with matching values, or click CANCEL to quit.",
+                    //   "Calculate Field?",
                     //   System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation,
                     //   System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.Cancel)
                     //{
-                    //    PRZH.UpdateProgress(PM, PRZH.WriteLog("User bailed out of Cost Import Process."), true, ++val);
+                    //    PRZH.UpdateProgress(PM, PRZH.WriteLog("User cancelled out of Cost Import Process."), true, ++val);
                     //    return false;
                     //}
 

@@ -9,14 +9,16 @@
     xmlns:extensions="clr-namespace:ArcGIS.Desktop.Extensions;assembly=ArcGIS.Desktop.Extensions"
     mc:Ignorable="d"
     Title="PRZ Tools Settings"
-    Width="500" MinWidth="400"
-    Icon="pack://application:,,,/PRZTools;component/ImagesWPF/Settings32.png" ShowIconOnTitleBar="True"
+    MinWidth="500"
+    MinHeight="500"
+    Icon="pack://application:,,,/PRZTools;component/ImagesWPF/Settings32.png"
+    ShowIconOnTitleBar="True"
     WindowStartupLocation="CenterOwner"
     ShowMinButton="True" ShowMaxRestoreButton="True" ShowCloseButton="True" ShowTitleBar="True"
     ResizeMode="CanResize"
-    SizeToContent="Height"
-    Cursor="{Binding ProWindowCursor}"
-    >
+    SizeToContent="WidthAndHeight"
+    Cursor="{Binding ProWindowCursor}">
+
     <controls:ProWindow.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -34,8 +36,13 @@
         BorderBrush="{DynamicResource Esri_BorderBrush}">
 
         <Grid>
+            
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            
             <Grid.RowDefinitions>
-                <RowDefinition Height="*"></RowDefinition>
+                <RowDefinition Height="Auto"></RowDefinition>
                 <RowDefinition Height="*"></RowDefinition>
             </Grid.RowDefinitions>
 
@@ -43,7 +50,8 @@
             <Border 
                 Grid.Row="0"
                 BorderThickness="1.5"
-                BorderBrush="{DynamicResource Esri_BorderBrush}">
+                BorderBrush="{DynamicResource Esri_BorderBrush}"
+                Padding="5">
 
                 <DockPanel
                     LastChildFill="False"
@@ -277,7 +285,8 @@
             <Border 
                 Grid.Row="1"
                 BorderThickness="1.5"
-                BorderBrush="{DynamicResource Esri_BorderBrush}">
+                BorderBrush="{DynamicResource Esri_BorderBrush}"
+                Padding="5">
 
                 <DockPanel
                     LastChildFill="True"
@@ -296,7 +305,6 @@
                         <TextBlock 
                             DockPanel.Dock="Left"
                             Margin="20, 5, 5, 10" 
-                            VerticalAlignment="Center" 
                             Style="{DynamicResource Esri_TextBlockRegular}"
                             Text="Author Name:" />
 
@@ -314,7 +322,6 @@
                         <TextBlock 
                             DockPanel.Dock="Left"
                             Margin="20, 5, 5, 10" 
-                            VerticalAlignment="Center" 
                             Style="{DynamicResource Esri_TextBlockRegular}"
                             Text="Author Email:" />
 
