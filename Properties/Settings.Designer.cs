@@ -181,7 +181,7 @@ namespace NCC.PRZTools.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("3")]
         public string DEFAULT_NATGRID_DIMENSION {
             get {
                 return ((string)(this["DEFAULT_NATGRID_DIMENSION"]));
