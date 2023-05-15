@@ -17,13 +17,13 @@ namespace NCC.PRZTools
             get => _elementID;
             set
             {
-                if (value > 99999 || value < 1)
+                if (value > 999999 || value < 1)
                 {
-                    throw new Exception("Element ID out of range (1 to 99999)");
+                    throw new Exception("Element ID out of range (1 to 999999)");
                 }
 
                 _elementID = value;
-                ElementTable = PRZConstants.c_TABLE_REGPRJ_PREFIX_ELEMENT + value.ToString("D5");
+                ElementTable = PRZConstants.c_TABLE_REGPRJ_PREFIX_ELEMENT + value.ToString(PRZHelper.CurrentGeodatabaseElementTableNameFormat);
             }
         }
 

@@ -747,6 +747,15 @@ namespace NCC.PRZTools
                 }
                 List<NatElement> elements = elem_outcome.elements;
 
+                var try_setup_table_format = await PRZH.SetElementTableNamingFormat((elements ?? new List<NatElement>()).Count > 0 ? elements[0].ElementID : -1);
+
+                if(!try_setup_table_format.success)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Unable to detect the format of element presence table names." + Environment.NewLine + $"{try_setup_table_format.message}", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show("Error while preparing to process element tables." + Environment.NewLine + $"{try_setup_table_format.message}");
+                    return (false, "Error while preparing to process element tables.");
+                }
+
                 PRZH.CheckForCancellation(token);
 
                 #endregion

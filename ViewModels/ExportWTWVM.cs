@@ -626,6 +626,15 @@ namespace NCC.PRZTools
 
                 #region ASSEMBLE NATIONAL ELEMENT VALUE DICTIONARIES
 
+                var try_setup_table_format = await PRZH.SetElementTableNamingFormat((nat_goals ?? new List<NatElement>()).Count > 0 ? nat_goals[0].ElementID : -1);
+
+                if (!try_setup_table_format.success)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Unable to detect the format of element presence table names." + Environment.NewLine + $"{try_setup_table_format.message}", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show("Error while preparing to process element tables." + Environment.NewLine + $"{try_setup_table_format.message}");
+                    return;
+                }
+
                 // Populate a unique list of active themes
 
                 // Get the Goal Value Dictionary of Dictionaries:  Key = element ID, Value = Dictionary of PUID + Values
