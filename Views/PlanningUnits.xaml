@@ -208,6 +208,7 @@
                             VerticalContentAlignment="Center" 
                             GroupName="PlanningUnitSource"
                             IsChecked="{Binding PUSource_Rad_CustomGrid_IsChecked}"
+                            IsEnabled="False"
                             Content="Custom Grid" />
 
                         <DockPanel
