@@ -52,8 +52,6 @@
         <group id="prz_group_export" caption="Export" keytip="z">
           <!--Export to "Where to Work" Dialog Button-->
           <button refID="prz_button_export_wtw" size="middle" />
-          <!--Export to Prioritizr Dialog Button-->
-          <button refID="prz_button_export_prz" size="middle" />
         </group>
         <!--DISPLAY GROUP-->
         <group id="prz_group_display" caption="Display" keytip="z">
@@ -66,8 +64,8 @@
       <controls>
         <!--TOOLS AND SETTINGS CONTROLS-->
         <!--Workspace Settings Dialog Button-->
-        <button id="prz_button_settings_ws" caption="Workspace Setup" className="Button_Settings_WS" keytip="z" loadOnClick="true" smallImage="Images\Settings16.png" largeImage="Images\Settings32.png">
-          <tooltip heading="Workspace Setup">
+        <button id="prz_button_settings_ws" caption="Setup Workspace" className="Button_Settings_WS" keytip="z" loadOnClick="true" smallImage="Images\Settings16.png" largeImage="Images\Settings32.png">
+          <tooltip heading="Setup Workspace">
             Specify the PRZ Tools Workspace Folder, and other neat stuff.
             <disabledText></disabledText></tooltip>
         </button>
@@ -79,38 +77,38 @@
         </button>
         <!--CONFIGURATION CONTROLS-->
         <!--Planning Unit Generator Dialog Button-->
-        <button id="prz_button_planningunits" caption="Planning Units" className="Button_PlanningUnits" keytip="z" loadOnClick="true" smallImage="Images\PlanningUnits16.png" largeImage="Images\PlanningUnits32.png" condition="esri_mapping_mapPane">
-          <tooltip heading="Planning Unit Generator">
+        <button id="prz_button_planningunits" caption="Generate Planning Units" className="Button_PlanningUnits" keytip="z" loadOnClick="true" smallImage="Images\PlanningUnits16.png" largeImage="Images\PlanningUnits32.png" condition="esri_mapping_mapPane">
+          <tooltip heading="Generate Planning Units">
             Tools to generate a Planning Unit Feature Class, based on a grid definition or an existing Polygon Feature Class.
             <disabledText>
               Active Pane must be a Map
             </disabledText></tooltip>
         </button>
         <!--National Data Loader-->
-        <button id="prz_button_dataload_national" caption="National Data Load" className="Button_DataLoad_National" keytip="z" loadOnClick="true" largeImage="Images\NationalData32.png" condition="esri_mapping_mapPane">
-          <tooltip heading="Load National Data into this project">
-            Load any applicable conservation elements into this project's planning units, from the national database.
+        <button id="prz_button_dataload_national" caption="Extract National Data" className="Button_DataLoad_National" keytip="z" loadOnClick="true" largeImage="Images\NationalData32.png" condition="esri_mapping_mapPane">
+          <tooltip heading="Extract National Data into this project">
+            Extract any applicable conservation elements into this project's planning units, from the national database.
             <disabledText>
               In Development.
             </disabledText></tooltip>
         </button>
         <!--Regional Data Loader-->
-        <button id="prz_button_dataload_regional" caption="Regional Data Load" className="Button_DataLoad_Regional" keytip="z" loadOnClick="true" largeImage="Images\RegionalData32.png" condition="esri_mapping_mapPane">
-          <tooltip heading="Load Regional Data into this project">
-            Load any applicable conservation elements into this project's planning units, from the regional database.
+        <button id="prz_button_dataload_regional" caption="Extract Regional Data" className="Button_DataLoad_Regional" keytip="z" loadOnClick="true" largeImage="Images\RegionalData32.png" condition="esri_mapping_mapPane">
+          <tooltip heading="Extract Regional Data into this project">
+            Extract any applicable conservation elements into this project's planning units, from the regional database.
             <disabledText></disabledText></tooltip>
         </button>
         <!--EXPORT CONTROLS-->
         <!--Export to "Where to Work" Dialog Button-->
-        <button id="prz_button_export_wtw" keytip="z" caption="WTW" className="Button_Export_WTW" loadOnClick="true" smallImage="Images\ExportToWTW16.png" largeImage="Images\ExportToWTW32.png">
+        <button id="prz_button_export_wtw" keytip="z" caption="Export to WTW" className="Button_Export_WTW" loadOnClick="true" smallImage="Images\ExportToWTW16.png" largeImage="Images\ExportToWTW32.png">
           <tooltip heading="Export Project to 'Where to Work' Package">
-            Export the current PRZ Project to a package compatible with the Where to Work web application.
+            Export the current project to a package compatible with the Where to Work web application.
             <disabledText></disabledText></tooltip>
         </button>
         <!--Export to "Prioritizr" Dialog Button-->
         <button id="prz_button_export_prz" keytip="z" caption="Prioritizr" className="Button_Export_PRZ" loadOnClick="true" smallImage="Images\ExportToPRZ.png" largeImage="Images\ExportToPRZ.png">
           <tooltip heading="Export Project for Prioritizr Input">
-            Export the current PRZ Project for input into Prioritizr.
+            Export the current Project for input into Prioritizr.
             <disabledText></disabledText></tooltip>
         </button>
         <!--DISPLAY OPTIONS CONTROLS-->

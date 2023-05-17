@@ -3805,7 +3805,7 @@ namespace NCC.PRZTools
                     }
                     else
                     {
-                        return (false, null, "Element dictionary contains cell ids outside study area. Please re-run National Data Load.");
+                        return (false, null, "Element dictionary contains cell ids outside study area. Please re-extract National Data.");
                     }
                 }
 

@@ -252,7 +252,7 @@ namespace NCC.PRZTools
                 string toolOutput;
 
                 // Initialize ProgressBar and Progress Log
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("Initializing the National Data Loader..."), false, max, ++val);
+                PRZH.UpdateProgress(PM, PRZH.WriteLog("Initializing the National Data Extractor..."), false, max, ++val);
 
                 // Ensure the Project Geodatabase Exists
                 string gdbpath = PRZH.GetPath_ProjectGDB();
@@ -404,10 +404,10 @@ namespace NCC.PRZTools
                 // Final message
                 stopwatch.Stop();
                 string message = PRZH.GetElapsedTimeMessage(stopwatch.Elapsed);
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("National data load completed successfully!"), true, 1, 1);
+                PRZH.UpdateProgress(PM, PRZH.WriteLog("National data extraction completed successfully!"), true, 1, 1);
                 PRZH.UpdateProgress(PM, PRZH.WriteLog(message), true, 1, 1);
 
-                ProMsgBox.Show("National data load completed successfully!" + Environment.NewLine + Environment.NewLine + message);
+                ProMsgBox.Show("National data extraction completed successfully!" + Environment.NewLine + Environment.NewLine + message);
 
                 #endregion
             }

@@ -276,7 +276,7 @@ namespace NCC.PRZTools
                 string toolOutput;
 
                 // Initialize ProgressBar and Progress Log
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("Initializing the Regional Data Loader..."), false, max, ++val);
+                PRZH.UpdateProgress(PM, PRZH.WriteLog("Initializing the Regional Data Extractor..."), false, max, ++val);
 
                 // Ensure the Project Geodatabase Exists
                 var try_gdbexists = await PRZH.GDBExists_Project();

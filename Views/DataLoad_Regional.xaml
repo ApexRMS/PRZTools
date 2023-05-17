@@ -8,7 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:extensions="clr-namespace:ArcGIS.Desktop.Extensions;assembly=ArcGIS.Desktop.Extensions"
     mc:Ignorable="d"
-    Title="Regional Data Loader"
+    Title="Extract Regional Data"
     Width="500" Height="300" MinWidth="500" MinHeight="300"
     Icon="pack://application:,,,/PRZTools;component/ImagesWPF/RegionalData32.png" ShowIconOnTitleBar="True"
     WindowStartupLocation="CenterOwner"
