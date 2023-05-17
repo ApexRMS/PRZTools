@@ -380,8 +380,7 @@ namespace NCC.PRZTools
         {
             try
             {
-                string natdbfolderpath = GetPath_NatGDBFolder();
-                string natelementswpath = Path.Combine(natdbfolderpath, PRZC.c_DIR_PRZ_ELEMENTS);
+                string natelementswpath = Path.Combine(Properties.Settings.Default.NATDB_DBPATH, PRZC.c_DIR_PRZ_ELEMENTS);
 
                 return natelementswpath;
             }
