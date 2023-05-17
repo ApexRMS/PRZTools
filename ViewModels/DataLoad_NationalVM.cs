@@ -215,7 +215,7 @@ namespace NCC.PRZTools
         {
             bool edits_are_disabled = !Project.Current.IsEditingEnabled;
             int val = 0;
-            int max = 50;
+            int max = 17;
 
             try
             {
@@ -365,6 +365,7 @@ namespace NCC.PRZTools
                 }
                 else
                 {
+                    val = PM.Current;
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done processing national database..."), true, ++val);
                 }
 
@@ -611,7 +612,9 @@ namespace NCC.PRZTools
 
                 #region RETRIEVE INTERSECTING ELEMENTS
 
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Finding intersecting cells in National Database..."), true, ++val);
+                int log_every = 500;
+                int steps = elements.Count() / log_every;
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Finding intersecting cells in National Database..."), true, max + steps, ++val);
 
                 #region Setup
                 // Construct dictionary of planning units / national grid ids
@@ -662,7 +665,7 @@ namespace NCC.PRZTools
                 await Parallel.ForEachAsync(elements, async (element, token) =>
                 {
                     progress++;
-                    if (progress % 500 == 0)
+                    if (progress % log_every == 0)
                     {
                         PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done processing {progress} / {elements.Count()} national elements."), true, ++val);
                     }

@@ -1260,7 +1260,7 @@ namespace NCC.PRZTools
         {
             bool edits_are_disabled = !Project.Current.IsEditingEnabled;
             int val = 0;
-            int max = 50;
+            int max = 16;
 
             try
             {
@@ -1742,71 +1742,6 @@ namespace NCC.PRZTools
 
                 PRZH.UpdateProgress(PM, PRZH.WriteLog("Writing study area feature classes..."), true, ++val);
 
-/*                string safcpath = PRZH.GetPath_Project(PRZC.c_FC_STUDY_AREA_MAIN).path;
-
-                // Build the new empty Main Study Area FC
-                toolParams = Geoprocessing.MakeValueArray(gdbpath, PRZC.c_FC_STUDY_AREA_MAIN, "POLYGON", "", "DISABLED", "DISABLED", OutputSR, "", "", "", "", "");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    outputCoordinateSystem: OutputSR,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CreateFeatureclass_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error creating study area feature class.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show("Error creating study area feature class.");
-                    return;
-                }
-
-                PRZH.CheckForCancellation(token);
-
-                // Add Fields to Main Study Area FC
-                string fldArea_m = PRZC.c_FLD_FC_STUDYAREA_AREA_M2 + " DOUBLE 'Square m' # 0 #;";
-                string fldArea_ac = PRZC.c_FLD_FC_STUDYAREA_AREA_AC + " DOUBLE 'Acres' # 0 #;";
-                string fldArea_ha = PRZC.c_FLD_FC_STUDYAREA_AREA_HA + " DOUBLE 'Hectares' # 0 #;";
-                string fldArea_km = PRZC.c_FLD_FC_STUDYAREA_AREA_KM2 + " DOUBLE 'Square km' # 0 #;";
-
-                string SAflds = fldArea_m + fldArea_ac + fldArea_ha + fldArea_km;
-
-                toolParams = Geoprocessing.MakeValueArray(safcpath, SAflds);
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error adding fields to study area feature class.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show("Error adding fields to study area feature class.");
-                    return;
-                }
-
-                PRZH.CheckForCancellation(token);
-
-                // Add the feature
-                await QueuedTask.Run(() =>
-                {
-                    var tryget_gdb = PRZH.GetGDB_Project();
-
-                    using (Geodatabase geodatabase = tryget_gdb.geodatabase)
-                    using (FeatureClass featureClass = geodatabase.OpenDataset<FeatureClass>(PRZC.c_FC_STUDY_AREA_MAIN))
-                    using (FeatureClassDefinition fcDef = featureClass.GetDefinition())
-                    using (RowBuffer rowBuffer = featureClass.CreateRowBuffer())
-                    {
-                        geodatabase.ApplyEdits(() =>
-                        {
-                            // Field values
-                            rowBuffer[fcDef.GetShapeField()] = SA_poly;
-                            rowBuffer[PRZC.c_FLD_FC_STUDYAREA_AREA_M2] = SA_poly.Area;
-                            rowBuffer[PRZC.c_FLD_FC_STUDYAREA_AREA_AC] = SA_poly.Area * PRZC.c_CONVERT_M2_TO_AC;
-                            rowBuffer[PRZC.c_FLD_FC_STUDYAREA_AREA_HA] = SA_poly.Area * PRZC.c_CONVERT_M2_TO_HA;
-                            rowBuffer[PRZC.c_FLD_FC_STUDYAREA_AREA_KM2] = SA_poly.Area * PRZC.c_CONVERT_M2_TO_KM2;
-
-                            // Create the row
-                            featureClass.CreateRow(rowBuffer);
-                        });
-                    }
-                });
-
-                PRZH.CheckForCancellation(token);*/
-
                 string sabufffcpath = PRZH.GetPath_Project(PRZC.c_FC_STUDY_AREA_MAIN_BUFFERED).path;
 
                 // Build the new empty Buffered Study Area FC
@@ -1825,7 +1760,8 @@ namespace NCC.PRZTools
 
                 PRZH.CheckForCancellation(token);
 
-/*                // Add Fields to Buffered Study Area FC
+                // TODO: Remove code for extra fields if not needed
+/*              // Add Fields to Buffered Study Area FC
                 string fldBArea_m2 = PRZC.c_FLD_FC_STUDYAREA_AREA_M2 + " DOUBLE 'Square m' # 0 #;";
                 string fldBArea_ac = PRZC.c_FLD_FC_STUDYAREA_AREA_AC + " DOUBLE 'Acres' # 0 #;";
                 string fldBArea_ha = PRZC.c_FLD_FC_STUDYAREA_AREA_HA + " DOUBLE 'Hectares' # 0 #;";
@@ -1860,6 +1796,8 @@ namespace NCC.PRZTools
                         {
                             // Field values
                             rowBuffer[fcDef.GetShapeField()] = SA_poly_buffer;
+
+                            // TODO: Remove code for extra fields if not needed
                             /*rowBuffer[PRZC.c_FLD_FC_STUDYAREA_AREA_M2] = SA_poly_buffer.Area;
                             rowBuffer[PRZC.c_FLD_FC_STUDYAREA_AREA_AC] = SA_poly_buffer.Area * PRZC.c_CONVERT_M2_TO_AC;
                             rowBuffer[PRZC.c_FLD_FC_STUDYAREA_AREA_HA] = SA_poly_buffer.Area * PRZC.c_CONVERT_M2_TO_HA;

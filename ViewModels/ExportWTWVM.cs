@@ -219,7 +219,7 @@ namespace NCC.PRZTools
         {
             bool edits_are_disabled = !Project.Current.IsEditingEnabled;
             int val = 0;
-            int max = 50;
+            int max = 19;
 
             try
             {
@@ -374,6 +374,7 @@ namespace NCC.PRZTools
                 }
                 else
                 {
+                    val = PM.Current;
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done exporting spatial data."), true, ++val);
                 }
 
@@ -393,6 +394,7 @@ namespace NCC.PRZTools
                 }
                 else
                 {
+                    val = PM.Current;
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Boundary table export complete."), true, ++val);
                 }
 
@@ -412,6 +414,7 @@ namespace NCC.PRZTools
                 }
                 else
                 {
+                    val = PM.Current;
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Attribute table export complete."), true, ++val);
                 }
 
@@ -1627,6 +1630,7 @@ namespace NCC.PRZTools
                 return (false, ex.Message);
             }
         }
+
         private async Task<(bool success, string message)> BuildAttributeTable(CancellationToken token)
         {
             int val = PM.Current;
@@ -1747,7 +1751,7 @@ namespace NCC.PRZTools
                             await writetext.WriteLineAsync(line, token);
                         }
 
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done writing {++progress} / {cn_dict_by_tile.Count()} tiles of attribute table."), true, ++val);
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done writing {++progress} / {cn_dict_by_tile.Count()} tiles of attribute table."), true, max + cn_dict_by_tile.Count() - 1, ++val);
 
                         PRZH.CheckForCancellation(token);
                     }
