@@ -292,7 +292,9 @@ namespace NCC.PRZTools
                 #region VALIDATE NATIONAL AND REGIONAL ELEMENT DATA
 
                 // Check for national element tables
-                int nattables_present = Directory.GetFiles(PRZH.GetPath_ProjectNationalElementsSubfolder(), "*.bin").Count();
+                var tryread_national_element_tiles = PRZH.ReadBinary(PRZH.GetPath_ProjectNationalElementTilesMetadataPath());
+
+                int nattables_present = tryread_national_element_tiles.success ? ((Dictionary<string, HashSet<int>>)tryread_national_element_tiles.obj).Count : 0;
                 int regtables_present = 0; //TODO: Decide where to store reg element tables, update assignment accordingly
 
                 if (nattables_present == 0 & regtables_present == 0)
@@ -1634,115 +1636,120 @@ namespace NCC.PRZTools
             {
                 #region Initialization
 
+                // Identify extracted elements and tiles
+                var tryread_national_element_tiles = PRZH.ReadBinary(PRZH.GetPath_ProjectNationalElementTilesMetadataPath());
+                if (!tryread_national_element_tiles.success)
+                {
+                    return (false, $"Could not read tile metadata for national data, please try re-extracting national data. Message: {tryread_national_element_tiles.message}");
+                }
 
-                // Identify files to read
-                List<string> national_element_paths = Directory.GetFiles(PRZH.GetPath_ProjectNationalElementsSubfolder(), "*.bin").ToList();
-                List<string> regional_element_paths = new List<string>(); // TODO: Update to load regional data also
+                Dictionary<string, HashSet<int>> national_element_tiles = (Dictionary<string, HashSet<int>>)tryread_national_element_tiles.obj;
+                Dictionary<string, HashSet<int>> regional_element_tiles = new Dictionary<string, HashSet<int>>(); // TODO: Update to load regional data also
 
-                List<string> element_paths = Enumerable.Concat(national_element_paths, regional_element_paths).ToList();
+                Dictionary<string, HashSet<int>> element_tiles = national_element_tiles.Concat(regional_element_tiles).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                // Build dictionary of elements and corresponding dictionary locations
+                Dictionary<string, string> element_location = new Dictionary<string, string>(element_tiles.Count);
+
+                string natelementfolder = PRZH.GetPath_ProjectNationalElementsSubfolder();
+                string regelementfolder = ""; // TODO: implement PRZH.GetPath_ProjectRegionalElementsSubfolder();
+
+                foreach (string natelement in national_element_tiles.Keys) element_location.Add(natelement, natelementfolder);
+                foreach (string regelement in regional_element_tiles.Keys) element_location.Add(regelement, regelementfolder);
 
                 // Initialize dictionary
-                Dictionary<string, Dictionary<long, double>> attributes = new Dictionary<string, Dictionary<long, double>>(element_paths.Count());
-                //ConcurrentDictionary<string, Dictionary<long, double>> attributes = new ConcurrentDictionary<string, Dictionary<long, double>>();
+                //Dictionary<string, Dictionary<long, double>> attributes = new Dictionary<string, Dictionary<long, double>>(element_paths.Count());
 
                 #endregion
 
                 PRZH.CheckForCancellation(token);
 
-                #region Create cell number to PUID lookup table
+                #region Create cell number to PUID lookup table split by tile
 
-                var tryget_cndict = await PRZH.GetCellNumbersAndPUIDs();
+                var tryget_cndict = await PRZH.GetCellNumbersAndPUIDsbyTile();
 
                 if (!tryget_cndict.success)
                 {
                     return (false, tryget_cndict.message);
                 }
-                Dictionary<long, int> cn_dict = tryget_cndict.dict;
+                Dictionary<int, Dictionary<long, int>> cn_dict_by_tile = tryget_cndict.dict;
 
                 #endregion
 
                 PRZH.CheckForCancellation(token);
 
-                #region Get attribute data
-
-                // Get all attributes
-
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Loading all national and regional elements..."), true, ++val);
-
-                int progress = 0;
-                var options = new ParallelOptions() { MaxDegreeOfParallelism = 3 };
-
-                //foreach (string element_path in element_paths)
-                await Parallel.ForEachAsync(element_paths, options, async (element_path, token) =>
-                {
-                    progress++;
-                    if (progress % 250 == 0)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done loading {progress} / {element_paths.Count()} elements."), true, ++val);
-                    }
-
-                    var tryread = PRZH.ReadBinary(element_path);
-                    if (!tryread.success)
-                    {
-                        throw new Exception($"Could not read element binary file. Message: {tryread.message}");
-                    }
-
-                    //attributes.TryAdd(Path.GetFileNameWithoutExtension(element_path), (Dictionary<long, double>)tryread.obj);
-                    attributes.Add(Path.GetFileNameWithoutExtension(element_path), (Dictionary<long, double>)tryread.obj);
-                    //}
-                });
-
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done loading all national and regional elements."), true, ++val);
-
-                #endregion
-
-                PRZH.CheckForCancellation(token);
-
-                #region Write out attribute table
-
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Building and writing attribute table."), true, ++val);
+                #region Build and write attribute table
 
                 // Finally output
                 string export_folder_path = PRZH.GetPath_ExportWTWFolder();
                 string atrpath = Path.Combine(export_folder_path, PRZC.c_FILE_WTW_EXPORT_ATTR);
-                progress = 0;
 
-                // Write Line-by-Line
+                int progress = 0;
+
+                // File is written Line-by-Line, data is loaded Tile-by-Tile
                 await using (StreamWriter writetext = new StreamWriter(atrpath))
                 {
                     // Header
-                    foreach (string element_name in attributes.Keys)
+                    foreach (string element_name in element_tiles.Keys)
                     {
                         await writetext.WriteAsync($"{element_name},");
                     }
                     await writetext.WriteLineAsync("_index");
 
-                    // For each line
-                    foreach (var cn_puid in cn_dict)
+                    // For each tile
+                    // - Note: iterator Key is tile id, Value is dictionary of CNID to PUID
+                    foreach (var tile_cells in cn_dict_by_tile)
                     {
-                        progress++;
-                        if (progress % 100000 == 0)
-                        {
-                            PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done writing {progress} / {cn_dict.Count()} lines of attribute table."), true, ++val);
-                        }
+                        // Load attributes in tile
+                        Dictionary<string, Dictionary<long, double>> tile_attributes = new Dictionary<string, Dictionary<long, double>>(element_tiles.Count());
 
-                        StringBuilder line = new StringBuilder();
-
-                        foreach (Dictionary<long, double> element_dict in attributes.Values)
+                        // Load attributes for tile asynchronously
+                        // - Note: iterator Key is element id (string), Value is set of tiles element covers
+                        await Parallel.ForEachAsync(element_tiles, async (element_tile, token) =>
                         {
-                            if (element_dict.ContainsKey(cn_puid.Key))
+                            // Skip element if it does not overlap current tile
+                            if (!element_tile.Value.Contains(tile_cells.Key)) return;
+
+                            // Read in element tile
+                            string tile_path = Path.Combine(element_location[element_tile.Key], $"{element_tile.Key}-{tile_cells.Key}.bin");
+                            var tryread = PRZH.ReadBinary(tile_path);
+                            if (!tryread.success)
                             {
-                                line.Append($"{element_dict[cn_puid.Key]},");
-                                //await writetext.WriteAsync($"{element_dict[cn_puid.Key]},");
+                                throw new Exception($"Could not read element binary file. Message: {tryread.message}");
                             }
-                            else line.Append("0,"); //await writetext.WriteAsync("0,");
+
+                            // Add to attributes
+                            tile_attributes.Add(element_tile.Key, (Dictionary<long, double>)tryread.obj);
+                        });
+
+                        PRZH.CheckForCancellation(token);
+
+                        // Write to file line-by-line
+                        foreach (var cn_puid in tile_cells.Value)
+                        {
+                            StringBuilder line = new StringBuilder();
+
+                            foreach (string element in element_tiles.Keys)
+                            {
+                                // If the element does not overlap the tile, write zero
+                                if (!tile_attributes.ContainsKey(element)) line.Append("0,");
+
+                                // If the element does include the current cell, write zero
+                                else if (!tile_attributes[element].ContainsKey(cn_puid.Key)) line.Append("0,");
+
+                                // Otherwise write the relevant data
+                                else line.Append($"{tile_attributes[element][cn_puid.Key]},");
+                            }
+
+                            // Finally write PUID and end line
+                            line.Append($"{cn_puid.Value}");
+
+                            await writetext.WriteLineAsync(line, token);
                         }
 
-                        // Finally write PUID and end line
-                        line.Append($"{cn_puid.Value}");
-                        //await writetext.WriteLineAsync($"{cn_puid.Value}");
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done writing {++progress} / {cn_dict_by_tile.Count()} tiles of attribute table."), true, ++val);
 
-                        await writetext.WriteLineAsync(line);
+                        PRZH.CheckForCancellation(token);
                     }
                 }
 

@@ -638,7 +638,8 @@ namespace NCC.PRZTools
                 }
                 Dictionary<int, HashSet<int>> natdata_tiles = (Dictionary<int, HashSet<int>>)tryread_natdata_tiles.obj;
 
-                // Setup up lists to track which elements and themes are present
+                // Setup up lists to track which elements, themes, and tiles are present
+                Dictionary<string, HashSet<int>> element_tiles_present = new Dictionary<string, HashSet<int>>();
                 HashSet<int> elements_present = new HashSet<int>();
                 HashSet<int> themes_present = new HashSet<int>();
 
@@ -657,9 +658,8 @@ namespace NCC.PRZTools
                 // Find intersecting cells
                 string input_elements_folder = PRZH.GetPath_NationalDatabaseElementsSubfolder();
                 int progress = 0;
-                var options = new ParallelOptions() { MaxDegreeOfParallelism = 3 };
 
-                await Parallel.ForEachAsync(elements, options, async (element, token) =>
+                await Parallel.ForEachAsync(elements, async (element, token) =>
                 {
                     progress++;
                     if (progress % 500 == 0)
@@ -675,7 +675,6 @@ namespace NCC.PRZTools
                         return;
 
                     // Read in relevant element data tiles from national database
-                    Dictionary<long, double> element_cells = new Dictionary<long, double>();
                     foreach (int tile_id in natdata_tiles[element.ElementID])
                     {
                         string tile_filepath = Path.Combine(input_elements_folder, $"{element.ElementTable}-{tile_id}.bin");
@@ -685,26 +684,23 @@ namespace NCC.PRZTools
                         {
                             throw new Exception(tryread_tile.message);
                         }
-                        Dictionary<long, double> tile_cells = (Dictionary<long, double>)tryread_tile.obj;
 
-                        if (tile_cells.Count > 0)
-                        {
-                            element_cells = element_cells.Concat(tile_cells).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                        }
-                    }
+                        // Identify overlapping cells
+                        // TODO: Could this be faster by splitting sutdy_area_cells by tile to limit search space?
+                        Dictionary<long, double> intersecting_cells = ((Dictionary<long, double>)tryread_tile.obj).Where(x => study_area_cells.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
 
-                    // Find cells that intersect study area
-                    Dictionary<long, double> intersecting_cells = element_cells.Where(x => study_area_cells.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+                        if (intersecting_cells.Count() == 0) continue;
 
-                    if (intersecting_cells.Count() > 0)
-                    {
-                        var trywrite = PRZH.WriteBinary(intersecting_cells, $"{Path.Combine(output_elements_folder, element.ElementTable)}.bin");
+                        // Write to project
+                        var trywrite = PRZH.WriteBinary(intersecting_cells, Path.Combine(output_elements_folder, $"{element.ElementTable}-{tile_id}.bin"));
 
                         if (!trywrite.success)
                         {
                             throw new Exception(trywrite.message);
                         }
                     }
+
+                    PRZH.CheckForCancellation(token);
                 });
 
 
@@ -721,8 +717,23 @@ namespace NCC.PRZTools
                 // Identify elements that are present by id
                 foreach (string f in Directory.GetFiles(output_elements_folder))
                 {
-                    int element_id = Convert.ToInt32(Path.GetFileNameWithoutExtension(f).Substring(1));
-                    elements_present.Add(element_id);
+                    string[] element_info = Path.GetFileNameWithoutExtension(f).Split('-', 2);
+                    int element_id = Convert.ToInt32(element_info[0].Substring(1));
+                    int tile_id = Convert.ToInt32(element_info[1]);
+
+                    if (!elements_present.Contains(element_id))
+                    {
+                        elements_present.Add(element_id);
+                        element_tiles_present.Add(element_info[0], new HashSet<int>());
+                    }
+                    element_tiles_present[element_info[0]].Add(tile_id);
+                }
+
+                // Save list of intersecting elements and tiles to dictionary
+                var trywrite_tiles = PRZH.WriteBinary(element_tiles_present, PRZH.GetPath_ProjectNationalElementTilesMetadataPath());
+                if (!trywrite_tiles.success)
+                {
+                    throw new Exception(trywrite_tiles.message);
                 }
 
                 // Update the table

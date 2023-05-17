@@ -373,11 +373,54 @@ namespace NCC.PRZTools
             }
         }
 
-        public static Dictionary<int, HashSet<long>> GetTilesFromCells(Dictionary<long, double> cells, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
+        public static Dictionary<int, Dictionary<long, int>> GetTilesFromCells(Dictionary<long, int> cnpuid_dict, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
         {
-            HashSet<long> cell_ids = new HashSet<long>(cells.Keys);
-            return GetTilesFromCells(cell_ids, dimension);
+            int colcount = 0;
+
+            switch (dimension)
+            {
+                case NationalGridDimension.SideLength_1m:
+                    colcount = c_NATGRID_COLUMNS_DIM0;
+                    break;
+                case NationalGridDimension.SideLength_10m:
+                    colcount = c_NATGRID_COLUMNS_DIM1;
+                    break;
+                case NationalGridDimension.SideLength_100m:
+                    colcount = c_NATGRID_COLUMNS_DIM2;
+                    break;
+                case NationalGridDimension.SideLength_1000m:
+                    colcount = c_NATGRID_COLUMNS_DIM3;
+                    break;
+                case NationalGridDimension.SideLength_10000m:
+                    colcount = c_NATGRID_COLUMNS_DIM4;
+                    break;
+                case NationalGridDimension.SideLength_100000m:
+                    colcount = c_NATGRID_COLUMNS_DIM5;
+                    break;
+                default:
+                    throw new Exception($"invalid dimension parameter supplied: {dimension}");
+            }
+
+            Dictionary<int, Dictionary<long, int>> tiles = new Dictionary<int, Dictionary<long, int>>();
+
+            foreach (KeyValuePair<long, int> cnpuid in cnpuid_dict)
+            {
+                // Convert cell number to tile
+                int row = (int)(cnpuid.Key / colcount) / c_NATGRID_TILE_ROW_HEIGHT;
+                int col = (int)(cnpuid.Key % colcount) / c_NATGRID_TILE_COL_WIDTH;
+                int tile = row * c_NATGRID_TILE_COLS_COUNT + col + 1; // Note tile numbers are 1-indexed
+
+                // Update dictionary of tiles and corresponding cell numbers
+                if (!tiles.ContainsKey(tile))
+                {
+                    tiles.Add(tile, new Dictionary<long, int>());
+                }
+                tiles[tile].Add(cnpuid.Key, cnpuid.Value);
+            }
+
+            return tiles;
         }
+
         public static Dictionary<int, HashSet<long>> GetTilesFromCells(HashSet<long> cells, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
         {
             int colcount = 0;

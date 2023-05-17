@@ -458,6 +458,22 @@ namespace NCC.PRZTools
             }
         }
 
+        public static string GetPath_ProjectNationalElementTilesMetadataPath()
+        {
+            try
+            {
+                string projectnatelempath = GetPath_ProjectNationalElementsSubfolder();
+                string tilespath = Path.Combine(projectnatelempath, PRZC.c_FILE_METADATA_TILES);
+
+                return tilespath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
         #endregion
 
         #region GEODATABASE OBJECT PATHS
@@ -4472,6 +4488,27 @@ namespace NCC.PRZTools
                 });
 
                 return (true, DICT_CN_PUID, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        public static async Task<(bool success, Dictionary<int, Dictionary<long, int>> dict, string message)> GetCellNumbersAndPUIDsbyTile()
+        {
+            try
+            {
+                var tryget_cnpuid = await GetCellNumbersAndPUIDs();
+                
+                if (!tryget_cnpuid.success)
+                {
+                    throw new Exception(tryget_cnpuid.message);
+                }
+
+                Dictionary<int, Dictionary<long, int>> cells_by_tile = NationalGrid.GetTilesFromCells(tryget_cnpuid.dict);
+
+                return (true, cells_by_tile, "success");
             }
             catch (Exception ex)
             {
