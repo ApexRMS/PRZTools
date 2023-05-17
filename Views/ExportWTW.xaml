@@ -197,7 +197,7 @@
                         Style="{DynamicResource Esri_Button}"
                         Command="{Binding CmdExport}"
                         IsEnabled="{Binding Operation_Cmd_IsEnabled}"
-                        Content="EXPORT WTW FILES" />
+                        Content="Export WTW Files" />
 
                     <Button 
                         DockPanel.Dock="Right"
@@ -205,7 +205,7 @@
                         Padding="5,0"
                         Style="{DynamicResource Esri_Button}"
                         Command="{Binding CmdCancel}"
-                        Content="CANCEL" />
+                        Content="Cancel" />
 
                 </DockPanel>
             </Border>
