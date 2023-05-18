@@ -2544,6 +2544,88 @@ namespace NCC.PRZTools
         }
 
         /// <summary>
+        /// Retrieve a list of NatTheme objects from the project geodatabase.  Silent errors.
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<(bool success, List<NatTheme> themes, string message)> GetNationalThemes_Direct()
+        {
+            try
+            {
+                // Check for Project GDB
+                var try_gdbexists = await GDBExists_Nat();
+                if (!try_gdbexists.exists)
+                {
+                    return (false, null, try_gdbexists.message);
+                }
+
+                // Check for existence of Theme table
+                if (!(await TableExists_Nat(PRZC.c_TABLE_NATSRC_THEMES)).exists)
+                {
+                    return (false, null, $"{PRZC.c_TABLE_NATSRC_THEMES} table not found in project geodatabase");
+                }
+
+                // Create the list
+                List<NatTheme> themes = new List<NatTheme>();
+
+                // Populate the list
+                (bool success, string message) outcome = await QueuedTask.Run(() =>
+                {
+                    var tryget = GetTable_Nat(PRZC.c_TABLE_NATSRC_THEMES);
+                    if (!tryget.success)
+                    {
+                        throw new Exception("Error retrieving table.");
+                    }
+
+                    using (Table table = tryget.table)
+                    using (RowCursor rowCursor = table.Search())
+                    {
+                        while (rowCursor.MoveNext())
+                        {
+                            using (Row row = rowCursor.Current)
+                            {
+                                int id = Convert.ToInt32(row[PRZC.c_FLD_TAB_NATTHEME_THEME_ID]);
+                                string name = (string)row[PRZC.c_FLD_TAB_NATTHEME_NAME];
+                                string code = (string)row[PRZC.c_FLD_TAB_NATTHEME_CODE];
+                                int theme_presence = 0;
+
+                                if (id > 0 && !string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(code))
+                                {
+                                    NatTheme theme = new NatTheme()
+                                    {
+                                        ThemeID = id,
+                                        ThemeName = name,
+                                        ThemeCode = code,
+                                        ThemePresence = theme_presence
+                                    };
+
+                                    themes.Add(theme);
+                                }
+                            }
+                        }
+                    }
+
+                    return (true, "success");
+                });
+
+                if (outcome.success)
+                {
+                    // Sort the list by theme id
+                    themes.Sort((a, b) => a.ThemeID.CompareTo(b.ThemeID));
+
+                    return (true, themes, "success");
+                }
+                else
+                {
+                    return (false, null, outcome.message);
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Retrieve a list of NatTheme objects from the project geodatabase, optionally filtered
         /// by the presence indicator.  Silent errors.
         /// </summary>
@@ -2664,6 +2746,135 @@ namespace NCC.PRZTools
 
                 // Populate the Theme Information
                 var theme_outcome = await GetNationalThemes();
+                if (!theme_outcome.success)
+                {
+                    return (false, null, theme_outcome.message);
+                }
+
+                List<NatTheme> themes = theme_outcome.themes;
+
+                foreach (NatElement element in elements)
+                {
+                    int theme_id = element.ThemeID;
+
+                    if (theme_id < 1)
+                    {
+                        element.ThemeName = "INVALID THEME ID";
+                        element.ThemeCode = "---";
+                    }
+                    else
+                    {
+                        NatTheme theme = themes.FirstOrDefault(t => t.ThemeID == theme_id);
+
+                        if (theme != null)
+                        {
+                            element.ThemeName = theme.ThemeName;
+                            element.ThemeCode = theme.ThemeCode;
+                        }
+                        else
+                        {
+                            element.ThemeName = "NO CORRESPONDING THEME";
+                            element.ThemeCode = "???";
+                        }
+                    }
+                }
+
+                // Sort the list
+                elements.Sort((a, b) => a.ElementID.CompareTo(b.ElementID));
+
+                return (true, elements, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Retrieve a list of NatElement objects from the national geodatabase.  Silent errors.
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<(bool success, List<NatElement> elements, string message)> GetNationalElements_Direct()
+        {
+            try
+            {
+                // Check for Project GDB
+                var try_gdbexists = await GDBExists_Nat();
+                if (!try_gdbexists.exists)
+                {
+                    return (false, null, try_gdbexists.message);
+                }
+
+                // Check for existence of Element table
+                if (!(await TableExists_Nat(PRZC.c_TABLE_NATSRC_ELEMENTS)).exists)
+                {
+                    return (false, null, $"{PRZC.c_TABLE_NATSRC_ELEMENTS} table not found in national geodatabase");
+                }
+
+                // Create list
+                List<NatElement> elements = new List<NatElement>();
+                bool tableFormatChecked = false;
+
+                // Populate the list
+                await QueuedTask.Run(async () =>
+                {
+                    var tryget = GetTable_Nat(PRZC.c_TABLE_NATSRC_ELEMENTS);
+                    if (!tryget.success)
+                    {
+                        throw new Exception("Error retrieving table.");
+                    }
+
+                    using (Table table = tryget.table)
+                    using (RowCursor rowCursor = table.Search())
+                    {
+                        while (rowCursor.MoveNext())
+                        {
+                            using (Row row = rowCursor.Current)
+                            {
+                                int id = Convert.ToInt32(row[PRZC.c_FLD_TAB_NATELEMENT_ELEMENT_ID]);
+                                string name = (string)row[PRZC.c_FLD_TAB_NATELEMENT_NAME] ?? "";
+                                int elem_type = Convert.ToInt32(row[PRZC.c_FLD_TAB_NATELEMENT_TYPE]);
+                                int elem_status = Convert.ToInt32(row[PRZC.c_FLD_TAB_NATELEMENT_STATUS]);
+                                string data_path = (string)row[PRZC.c_FLD_TAB_NATELEMENT_DATAPATH] ?? "";
+                                int theme_id = Convert.ToInt32(row[PRZC.c_FLD_TAB_NATELEMENT_THEME_ID]);
+                                int elem_presence = 0;
+                                string unit = (string)row[PRZC.c_FLD_TAB_NATELEMENT_UNIT] ?? "";
+
+                                if (!tableFormatChecked)
+                                {
+                                    var try_setup_table_format = await SetElementTableNamingFormat(id);
+
+                                    if (!try_setup_table_format.success)
+                                    {
+                                        throw new Exception(try_setup_table_format.message);
+                                    }
+
+                                    tableFormatChecked = true;
+                                }
+
+                                if (id > 0 && elem_type > 0 && elem_status > 0 && theme_id > 0 && !string.IsNullOrEmpty(name))
+                                {
+                                    NatElement element = new NatElement()
+                                    {
+                                        ElementID = id,
+                                        ElementName = name,
+                                        ElementType = elem_type,
+                                        ElementStatus = elem_status,
+                                        ElementDataPath = data_path,
+                                        ThemeID = theme_id,
+                                        ElementPresence = elem_presence,
+                                        ElementUnit = unit
+                                    };
+
+                                    elements.Add(element);
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Populate the Theme Information
+                var theme_outcome = await GetNationalThemes_Direct();
                 if (!theme_outcome.success)
                 {
                     return (false, null, theme_outcome.message);
@@ -4506,7 +4717,7 @@ namespace NCC.PRZTools
                     throw new Exception(tryget_cnpuid.message);
                 }
 
-                Dictionary<int, Dictionary<long, int>> cells_by_tile = NationalGrid.GetTilesFromCells(tryget_cnpuid.dict);
+                Dictionary<int, Dictionary<long, int>> cells_by_tile = NationalGrid.GetTilesFromCellDict(tryget_cnpuid.dict);
 
                 return (true, cells_by_tile, "success");
             }

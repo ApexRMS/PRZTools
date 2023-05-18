@@ -373,7 +373,7 @@ namespace NCC.PRZTools
             }
         }
 
-        public static Dictionary<int, Dictionary<long, int>> GetTilesFromCells(Dictionary<long, int> cnpuid_dict, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
+        public static Dictionary<int, Dictionary<long, int>> GetTilesFromCellDict(Dictionary<long, int> cnpuid_dict, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
         {
             int colcount = 0;
 
@@ -419,6 +419,12 @@ namespace NCC.PRZTools
             }
 
             return tiles;
+        }
+
+        public static Dictionary<int, HashSet<long>> GetTilesFromCells(Dictionary<long, double> cells, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
+        {
+            HashSet<long> cell_ids = new HashSet<long>(cells.Keys);
+            return GetTilesFromCells(cell_ids, dimension);
         }
 
         public static Dictionary<int, HashSet<long>> GetTilesFromCells(HashSet<long> cells, NationalGridDimension dimension = NationalGridDimension.SideLength_1000m)
