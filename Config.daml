@@ -1,5 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<ArcGIS defaultAssembly="PRZTools.dll" defaultNamespace="NCC.PRZTools" xmlns="http://schemas.esri.com/DADF/Registry" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
+﻿<ArcGIS defaultAssembly="PRZTools.dll" defaultNamespace="NCC.PRZTools" xmlns="http://schemas.esri.com/DADF/Registry" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.esri.com/DADF/Registry file:///C:/Program%20Files/ArcGIS/Pro/bin/ArcGIS.Desktop.Framework.xsd">
   <AddInInfo id="{da31f65d-d421-4389-8904-1ebf0789e957}" version="2.2" desktopVersion="3.0.36056">
     <Name>PRZ Tools</Name>
     <Description>NCC Prioritization Toolset
@@ -31,6 +30,7 @@
           <group refID="prz_group_assembly" />
           <group refID="prz_group_display" />
           <group refID="prz_group_export" />
+          <group refID="prz_group_development" />
         </tab>
       </tabs>
       <groups>
@@ -59,6 +59,11 @@
           <button refID="prz_button_loadprzlayers" size="large" />
           <!--Legends Menu-->
           <menu refID="prz_menu_legends" size="large" />
+        </group>
+        <!--DEV GROUP-->
+        <group id="prz_group_development" caption="Development" keytip="z">
+          <!--Serialize Database Dialog Button-->
+          <button refID="prz_button_serialize_database" size="large" />
         </group>
       </groups>
       <controls>
@@ -155,6 +160,11 @@
           <tooltip heading="Planning Unit Legend">
             Legend Element
             <disabledText>Currently disabled</disabledText></tooltip>
+        </button>
+        <button id="prz_button_serialize_database" keytip="z" caption="Serialize Geodatabase" className="Button_Serialize_Database" loadOnClick="true" smallImage="Images\Table16.png" largeImage="Images\Table32.png">
+          <tooltip heading="Serialize Database">
+			Serializes and tiles national and regional geodatabases for faster processing.
+			<disabledText></disabledText></tooltip>
         </button>
       </controls>
       <menus>
