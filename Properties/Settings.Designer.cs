@@ -274,7 +274,22 @@ namespace NCC.PRZTools.Properties {
                 this["NATDB_DBPATH"] = value;
             }
         }
-        
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string REGDB_DBPATH
+        {
+            get
+            {
+                return ((string)(this["REGDB_DBPATH"]));
+            }
+            set
+            {
+                this["REGDB_DBPATH"] = value;
+            }
+        }
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
@@ -322,7 +337,22 @@ namespace NCC.PRZTools.Properties {
                 this["NATDB_DBNAME"] = value;
             }
         }
-        
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("prz")]
+        public string REGDB_DBNAME
+        {
+            get
+            {
+                return ((string)(this["REGDB_DBNAME"]));
+            }
+            set
+            {
+                this["REGDB_DBNAME"] = value;
+            }
+        }
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("prz_creator")]
@@ -334,7 +364,22 @@ namespace NCC.PRZTools.Properties {
                 this["NATDB_SCHEMANAME"] = value;
             }
         }
-        
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("prz_creator")]
+        public string REGDB_SCHEMANAME
+        {
+            get
+            {
+                return ((string)(this["REGDB_SCHEMANAME"]));
+            }
+            set
+            {
+                this["REGDB_SCHEMANAME"] = value;
+            }
+        }
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("1")]
@@ -358,7 +403,22 @@ namespace NCC.PRZTools.Properties {
                 this["NATDB_DBVALID"] = value;
             }
         }
-        
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool REGDB_DBVALID
+        {
+            get
+            {
+                return ((bool)(this["REGDB_DBVALID"]));
+            }
+            set
+            {
+                this["REGDB_DBVALID"] = value;
+            }
+        }
+
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("C:\\TEMP")]

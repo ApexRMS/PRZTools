@@ -71,7 +71,6 @@ namespace NCC.PRZTools
 
         #endregion
 
-
         #region PROPERTIES
 
         public ProgressManager PM
@@ -242,7 +241,7 @@ namespace NCC.PRZTools
         {
             bool edits_are_disabled = !Project.Current.IsEditingEnabled;
             int val = 0;
-            int max = 5;
+            int max = 6;
 
             try
             {
@@ -304,6 +303,8 @@ namespace NCC.PRZTools
                 stopwatch.Start();
 
                 #endregion
+
+                PRZH.CheckForCancellation(token);
 
                 #region RETRIEVE AND PREPARE INFO FROM NATIONAL DATABASE
 
@@ -385,20 +386,22 @@ namespace NCC.PRZTools
                     Dictionary<int, HashSet<long>> tiles = NationalGrid.GetTilesFromCells(element_dict);
 
                     // Write tile metadata
-                    PRZH.WriteBinary(new HashSet<int>(tiles.Keys), Path.Combine(metadataTempDir, $"{element.ElementTable}.bin"));
+                    await PRZH.WriteBinary(new HashSet<int>(tiles.Keys), Path.Combine(metadataTempDir, $"{element.ElementTable}.bin"));
 
                     // Split and write by tile
                     foreach (KeyValuePair<int, HashSet<long>> tile in tiles)
                     {
                         Dictionary<long, double> tile_dict = element_dict.Where(cell => tile.Value.Contains(cell.Key)).ToDictionary(cell => cell.Key, cell => cell.Value);
                         string outputFile = $"{Path.Combine(outputDir, element.ElementTable)}-{tile.Key}.bin";
-                        PRZH.WriteBinary(tile_dict, outputFile);
+                        await PRZH.WriteBinary(tile_dict, outputFile);
                     }
 
                     PRZH.CheckForCancellation(token);
                 });
 
                 #endregion
+
+                PRZH.CheckForCancellation(token);
 
                 #region WRAP UP
 
@@ -408,9 +411,9 @@ namespace NCC.PRZTools
                 Dictionary<int, HashSet<int>> tileMetadata = new Dictionary<int, HashSet<int>>(elements.Count);
                 foreach (var element in elements)
                 {
-                    tileMetadata.Add(Int32.Parse(element.ElementTable.Substring(1)), (HashSet<int>)PRZH.ReadBinary(Path.Combine(metadataTempDir, $"{element.ElementTable}.bin")).obj);
+                    tileMetadata.Add(Int32.Parse(element.ElementTable.Substring(1)), (HashSet<int>)(await PRZH.ReadBinary(Path.Combine(metadataTempDir, $"{element.ElementTable}.bin"))).obj);
                 }
-                PRZH.WriteBinary(tileMetadata, Path.Combine(outputDir, PRZC.c_FILE_METADATA_TILES));
+                await PRZH.WriteBinary(tileMetadata, Path.Combine(outputDir, PRZC.c_FILE_METADATA_TILES));
                 Directory.Delete(metadataTempDir, true);
 
                 // Final message
@@ -449,7 +452,7 @@ namespace NCC.PRZTools
         {
             bool edits_are_disabled = !Project.Current.IsEditingEnabled;
             int val = 0;
-            int max = 50;
+            int max = 6;
 
             try
             {
@@ -467,10 +470,6 @@ namespace NCC.PRZTools
                     ProMsgBox.Show("This ArcGIS Pro Project has some unsaved edits.  Please save all edits before proceeding.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("ArcGIS Pro Project has no unsaved edits.  Proceeding..."), true, ++val);
-                }
 
                 // If editing is disabled, enable it temporarily (and disable again in the finally block)
                 if (edits_are_disabled)
@@ -481,17 +480,14 @@ namespace NCC.PRZTools
                         ProMsgBox.Show("Unable to enabled editing for this ArcGIS Pro Project.");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("ArcGIS Pro editing enabled."), true, ++val);
-                    }
                 }
 
                 #endregion
 
-                // Ensure the Regional Data Folder exists
-                string regpath = PRZH.GetPath_RegionalDataFolder();
-                if (!PRZH.FolderExists_RegionalData().exists) // TODO: Replace with standardized geodatabase check? 
+                // Ensure the Regional db exists
+                string regpath = PRZH.GetPath_RegGDB();
+                var tryexists_reg = await PRZH.GDBExists_Reg();
+                if (!tryexists_reg.exists)
                 {
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Valid Regional Geodatabase not found: '{regpath}'.", LogMessageType.VALIDATION_ERROR), true, ++val);
                     ProMsgBox.Show($"Valid Regional Geodatabase not found at {regpath}.");
@@ -515,9 +511,117 @@ namespace NCC.PRZTools
 
                 #endregion
 
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("Regional Geodatabase serializer not yet implemented! Not doing anything!"), false, max, ++val);
+                PRZH.CheckForCancellation(token);
+
+                #region RETRIEVE AND PREPARE INFO FROM REGIONAL DATABASE
+
+                int log_every = 250;
+                int progress = 0;
+
+                // Get the Regional Elements from the copied regional elements table
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieving regional elements..."), true, ++val);
+                var elem_outcome = await PRZH.GetRegionalElements_Direct();
+                if (!elem_outcome.success)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving regional elements.\n{elem_outcome.message}", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show($"Error retrieving regional elements.\n{elem_outcome.message}");
+                    return;
+                }
+                else
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {elem_outcome.elements.Count} regional elements."), true, max + (elem_outcome.elements.Count / log_every), ++val);
+                }
+                List<RegElement> elements = elem_outcome.elements;
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
+                #region Serialize element tables
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog("Serializing elements..."), true, ++val);
+
+                // Refresh output and temp dirs
+                String outputDir = PRZH.GetPath_RegionalDatabaseElementsSubfolder();
+                String metadataTempDir = Path.Combine(Path.GetDirectoryName(PRZH.GetPath_RegionalDatabaseElementsSubfolder()), "temp");
+
+                if (Directory.Exists(outputDir)) Directory.Delete(outputDir, true);
+                if (Directory.Exists(metadataTempDir)) Directory.Delete(metadataTempDir, true);
+
+                Directory.CreateDirectory(outputDir);
+                Directory.CreateDirectory(metadataTempDir);
+
+
+                await Parallel.ForEachAsync(elements, async (element, token) =>
+                {
+                    progress++;
+                    if (progress % log_every == 0)
+                    {
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done serializing {progress} / {elements.Count} elements."), true, ++val);
+                    }
+
+                    // Construct dictionary of natgrid cells / table vbalues
+                    Dictionary<long, double> element_dict = await QueuedTask.Run(() =>
+                    {
+                        var tryget = PRZH.GetTable_Reg(element.ElementTable);
+                        if (!tryget.success)
+                        {
+                            throw new Exception("Error retrieving table.");
+                        }
+
+                        using (Table table = tryget.table)
+                        using (RowCursor rowCursor = table.Search())
+                        {
+                            Dictionary<long, double> cells = new Dictionary<long, double>((int)table.GetCount());
+
+                            // Fill dictionary
+                            while (rowCursor.MoveNext())
+                            {
+                                using (Row row = rowCursor.Current)
+                                {
+                                    cells.TryAdd(Convert.ToInt64(row[PRZC.c_FLD_TAB_REG_ELEMVAL_CELL_NUMBER]), Convert.ToDouble(row[PRZC.c_FLD_TAB_REG_ELEMVAL_CELL_VALUE]));
+                                }
+                            }
+
+                            return cells;
+                        }
+                    });
+
+                    PRZH.CheckForCancellation(token);
+
+                    // Get tiles
+                    Dictionary<int, HashSet<long>> tiles = NationalGrid.GetTilesFromCells(element_dict);
+
+                    // Write tile metadata
+                    await PRZH.WriteBinary(new HashSet<int>(tiles.Keys), Path.Combine(metadataTempDir, $"{element.ElementTable}.bin"));
+
+                    // Split and write by tile
+                    foreach (KeyValuePair<int, HashSet<long>> tile in tiles)
+                    {
+                        Dictionary<long, double> tile_dict = element_dict.Where(cell => tile.Value.Contains(cell.Key)).ToDictionary(cell => cell.Key, cell => cell.Value);
+                        string outputFile = $"{Path.Combine(outputDir, element.ElementTable)}-{tile.Key}.bin";
+                        await PRZH.WriteBinary(tile_dict, outputFile);
+                    }
+
+                    PRZH.CheckForCancellation(token);
+                });
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
 
                 #region WRAP UP
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Wrapping up..."), true, ++val);
+
+                // Compile tile metadata, save, clear tempdir
+                Dictionary<int, HashSet<int>> tileMetadata = new Dictionary<int, HashSet<int>>(elements.Count);
+                foreach (var element in elements)
+                {
+                    tileMetadata.Add(Int32.Parse(element.ElementTable.Substring(1)), (HashSet<int>)(await PRZH.ReadBinary(Path.Combine(metadataTempDir, $"{element.ElementTable}.bin"))).obj);
+                }
+                await PRZH.WriteBinary(tileMetadata, Path.Combine(outputDir, PRZC.c_FILE_METADATA_TILES));
+                Directory.Delete(metadataTempDir, true);
 
                 // Final message
                 stopwatch.Stop();
@@ -570,9 +674,9 @@ namespace NCC.PRZTools
                 }
 
                 // Regional Database existence
-                _regdb_exists = PRZH.FolderExists_RegionalData().exists; // TODO: replace with database existence check?
+                _regdb_exists = (await PRZH.GDBExists_Reg()).exists;
 
-                if (_natdb_exists)
+                if (_regdb_exists)
                 {
                     CompStat_Txt_RegDB_Label = "Regional Database exists.";
                     CompStat_Img_RegDB_Path = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_Yes16.png";

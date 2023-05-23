@@ -65,6 +65,9 @@
     <Setting Name="NATDB_DBPATH" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="REGDB_DBPATH" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
     <Setting Name="RT_SCRATCH_FGDB" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
@@ -85,6 +88,18 @@
     </Setting>
     <Setting Name="NATDB_DBVALID" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="REGDB_DBNAME" Type="System.String" Scope="User">
+        <Value Profile="(Default)">prz</Value>
+    </Setting>
+    <Setting Name="REGDB_SCHEMANAME" Type="System.String" Scope="User">
+        <Value Profile="(Default)">prz_creator</Value>
+    </Setting>
+    <Setting Name="REGDB_DBTYPE" Type="System.Int32" Scope="User">
+        <Value Profile="(Default)">1</Value>
+    </Setting>
+    <Setting Name="REGDB_DBVALID" Type="System.Boolean" Scope="User">
+        <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="REGIONAL_FOLDER_PATH" Type="System.String" Scope="User">
       <Value Profile="(Default)">C:\TEMP</Value>

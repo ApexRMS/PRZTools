@@ -32,27 +32,33 @@ namespace NCC.PRZTools
         private ICommand _cmdSelectProjectFolder;
         private ICommand _cmdSelectNationalDb;
         private ICommand _cmdValidateNationalDb;
+        private ICommand _cmdValidateRegionalDb;
         private ICommand _cmdInitializeWorkspace;
         private ICommand _cmdResetWorkspace;
         private ICommand _cmdExploreWorkspace;
         private ICommand _cmdViewLogFile;
         private ICommand _cmdClearLogFile;
-        private ICommand _cmdSelectRegionalFolder;
+        private ICommand _cmdSelectRegionalDb;
 
         // Other Fields
         private string _prjSettings_Txt_ProjectFolderPath;
-        private string _prjSettings_Txt_RegionalFolderPath;
+        private string _prjSettings_Txt_RegionalDbPath;
         private string _prjSettings_Txt_NationalDbPath;
         private string _outputSettings_Txt_AuthorName;
         private string _outputSettings_Txt_AuthorEmail;
 
         private Visibility _natDbInfo_Vis_DockPanel = Visibility.Hidden;
+        private Visibility _regDbInfo_Vis_DockPanel = Visibility.Hidden;
         private string _natDbInfo_Txt_DbName;
+        private string _regDbInfo_Txt_DbName;
         private List<string> _natDbInfo_Cmb_SchemaNames;
+        private List<string> _regDbInfo_Cmb_SchemaNames;
         private string _natDbInfo_Cmb_SelectedSchemaName;
+        private string _regDbInfo_Cmb_SelectedSchemaName;
         private Cursor _proWindowCursor = Cursors.Arrow;
 
         private string _natDBInfo_Img_Status = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_No16.png";
+        private string _regDBInfo_Img_Status = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_No16.png";
 
         #endregion
 
@@ -62,6 +68,12 @@ namespace NCC.PRZTools
         {
             get => _natDBInfo_Img_Status;
             set => SetProperty(ref _natDBInfo_Img_Status, value, () => NatDBInfo_Img_Status);
+        }
+
+        public string RegDBInfo_Img_Status
+        {
+            get => _regDBInfo_Img_Status;
+            set => SetProperty(ref _regDBInfo_Img_Status, value, () => RegDBInfo_Img_Status);
         }
 
         public string NatDbInfo_Txt_DbName
@@ -75,16 +87,38 @@ namespace NCC.PRZTools
             }
         }
 
+        public string RegDbInfo_Txt_DbName
+        {
+            get => _regDbInfo_Txt_DbName;
+            set
+            {
+                SetProperty(ref _regDbInfo_Txt_DbName, value, () => RegDbInfo_Txt_DbName);
+                Properties.Settings.Default.REGDB_DBNAME = string.IsNullOrEmpty(value) ? "" : value;
+                Properties.Settings.Default.Save();
+            }
+        }
+
         public Visibility NatDbInfo_Vis_DockPanel
         {
             get => _natDbInfo_Vis_DockPanel;
             set => SetProperty(ref _natDbInfo_Vis_DockPanel, value, () => NatDbInfo_Vis_DockPanel);
+        }
+        public Visibility RegDbInfo_Vis_DockPanel
+        {
+            get => _regDbInfo_Vis_DockPanel;
+            set => SetProperty(ref _regDbInfo_Vis_DockPanel, value, () => RegDbInfo_Vis_DockPanel);
         }
 
         public List<string> NatDbInfo_Cmb_SchemaNames
         {
             get => _natDbInfo_Cmb_SchemaNames;
             set => SetProperty(ref _natDbInfo_Cmb_SchemaNames, value, () => NatDbInfo_Cmb_SchemaNames);
+        }
+
+        public List<string> RegDbInfo_Cmb_SchemaNames
+        {
+            get => _regDbInfo_Cmb_SchemaNames;
+            set => SetProperty(ref _regDbInfo_Cmb_SchemaNames, value, () => RegDbInfo_Cmb_SchemaNames);
         }
 
         public string NatDbInfo_Cmb_SelectedSchemaName
@@ -94,6 +128,17 @@ namespace NCC.PRZTools
             {
                 SetProperty(ref _natDbInfo_Cmb_SelectedSchemaName, value, () => NatDbInfo_Cmb_SelectedSchemaName);
                 Properties.Settings.Default.NATDB_SCHEMANAME = string.IsNullOrEmpty(value) ? "" : value;
+                Properties.Settings.Default.Save();
+            }
+        }
+
+        public string RegDbInfo_Cmb_SelectedSchemaName
+        {
+            get => _regDbInfo_Cmb_SelectedSchemaName;
+            set
+            {
+                SetProperty(ref _regDbInfo_Cmb_SelectedSchemaName, value, () => RegDbInfo_Cmb_SelectedSchemaName);
+                Properties.Settings.Default.REGDB_SCHEMANAME = string.IsNullOrEmpty(value) ? "" : value;
                 Properties.Settings.Default.Save();
             }
         }
@@ -115,13 +160,13 @@ namespace NCC.PRZTools
             }
         }
 
-        public string PrjSettings_Txt_RegionalFolderPath
+        public string PrjSettings_Txt_RegionalDbPath
         {
-            get => _prjSettings_Txt_RegionalFolderPath;
+            get => _prjSettings_Txt_RegionalDbPath;
             set
             {
-                SetProperty(ref _prjSettings_Txt_RegionalFolderPath, value, () => PrjSettings_Txt_RegionalFolderPath);
-                Properties.Settings.Default.REGIONAL_FOLDER_PATH = value;
+                SetProperty(ref _prjSettings_Txt_RegionalDbPath, value, () => PrjSettings_Txt_RegionalDbPath);
+                Properties.Settings.Default.REGDB_DBPATH = value;
                 Properties.Settings.Default.Save();
             }
         }
@@ -169,9 +214,11 @@ namespace NCC.PRZTools
 
         public ICommand CmdSelectNationalDb => _cmdSelectNationalDb ?? (_cmdSelectNationalDb = new RelayCommand(() => SelectNationalDb(), () => true));
 
-        public ICommand CmdSelectRegionalFolder => _cmdSelectRegionalFolder ?? (_cmdSelectRegionalFolder = new RelayCommand(() => SelectRegionalFolder(), () => true));
+        public ICommand CmdSelectRegionalDb => _cmdSelectRegionalDb ?? (_cmdSelectRegionalDb = new RelayCommand(() => SelectRegionalDb(), () => true));
 
         public ICommand CmdValidateNationalDb => _cmdValidateNationalDb ?? (_cmdValidateNationalDb = new RelayCommand(() => ValidateNationalDb(), () => true));
+
+        public ICommand CmdValidateRegionalDb => _cmdValidateRegionalDb ?? (_cmdValidateRegionalDb = new RelayCommand(() => ValidateRegionalDb(), () => true));
 
         public ICommand CmdInitializeWorkspace => _cmdInitializeWorkspace ?? (_cmdInitializeWorkspace = new RelayCommand(async () => await InitializeWorkspace(), () => true));
 
@@ -203,15 +250,15 @@ namespace NCC.PRZTools
                     PrjSettings_Txt_ProjectFolderPath = wspath;
                 }
 
-                // Regional Data Folder Folder
-                string regpath = Properties.Settings.Default.REGIONAL_FOLDER_PATH;
+                // Regional DB
+                string regpath = Properties.Settings.Default.REGDB_DBPATH;
                 if (string.IsNullOrEmpty(regpath) || string.IsNullOrWhiteSpace(regpath))
                 {
-                    PrjSettings_Txt_RegionalFolderPath = "";
+                    PrjSettings_Txt_RegionalDbPath = "";
                 }
                 else
                 {
-                    PrjSettings_Txt_RegionalFolderPath = regpath;
+                    PrjSettings_Txt_RegionalDbPath = regpath;
                 }
 
                 // National DB
@@ -257,6 +304,18 @@ namespace NCC.PRZTools
                 else
                 {
                     NatDBInfo_Img_Status = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_No16.png";
+                }
+
+                // Validate National Db
+                var tryvalidate_reg = await ValidateRegionalDb();
+
+                if (tryvalidate_reg.success && tryvalidate_reg.valid)
+                {
+                    RegDBInfo_Img_Status = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_Yes16.png";
+                }
+                else
+                {
+                    RegDBInfo_Img_Status = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_No16.png";
                 }
 
             }
@@ -318,40 +377,50 @@ namespace NCC.PRZTools
             }
         }
 
-        private void SelectRegionalFolder()
+        private async Task SelectRegionalDb()
         {
             try
             {
                 string initDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
-                if (Directory.Exists(PrjSettings_Txt_ProjectFolderPath))
+                // File Geodatabase
+                if (Directory.Exists(PrjSettings_Txt_RegionalDbPath) && Path.IsPathRooted(PrjSettings_Txt_RegionalDbPath) && PrjSettings_Txt_RegionalDbPath.EndsWith(".gdb"))
                 {
-                    DirectoryInfo di = new DirectoryInfo(PrjSettings_Txt_ProjectFolderPath);
-                    DirectoryInfo dip = di.Parent;
-
-                    if (dip != null)
+                    DirectoryInfo di = new DirectoryInfo(PrjSettings_Txt_RegionalDbPath);
+                    if (di != null && di.Parent != null)
                     {
-                        initDir = dip.FullName;
+                        initDir = di.Parent.FullName;
                     }
                 }
 
+                // Database Connection File (.sde)
+                else if (File.Exists(PrjSettings_Txt_RegionalDbPath) && Path.IsPathRooted(PrjSettings_Txt_RegionalDbPath) && PrjSettings_Txt_RegionalDbPath.EndsWith(".sde"))
+                {
+                    FileInfo fi = new FileInfo(PrjSettings_Txt_RegionalDbPath);
+                    if (fi != null && fi.Directory != null)
+                    {
+                        initDir = fi.DirectoryName;
+                    }
+                }
+
+                // Configure the Browse Filter
+                BrowseProjectFilter bf = new BrowseProjectFilter("esri_browseDialogFilters_geodatabases")
+                {
+                    Name = "Geodatabases"
+                };
+
                 OpenItemDialog dlg = new OpenItemDialog
                 {
-                    Title = "Specify a Regional Data Folder",
+                    Title = "Specify a Regional Database",
                     InitialLocation = initDir,
                     MultiSelect = false,
                     AlwaysUseInitialLocation = true,
-                    Filter = ItemFilters.Folders
+                    BrowseFilter = bf
                 };
 
                 bool? result = dlg.ShowDialog();
 
-                // stop if user didn't specify anything
-                if (!result.HasValue || !result.Value)
-                {
-                    return;
-                }
-                else if (dlg.Items == null || dlg.Items.Count() < 1)
+                if ((dlg.Items == null) || (dlg.Items.Count() < 1))
                 {
                     return;
                 }
@@ -364,11 +433,203 @@ namespace NCC.PRZTools
                 }
 
                 string thePath = item.Path;
-                PrjSettings_Txt_RegionalFolderPath = thePath;
+                PrjSettings_Txt_RegionalDbPath = thePath;
+
+                // Finally, validate the database.
+                ProWindowCursor = Cursors.Wait;
+                var tryvalidate = await ValidateRegionalDb();
+                ProWindowCursor = Cursors.Arrow;
+
+                if (tryvalidate.success && tryvalidate.valid)
+                {
+                    RegDBInfo_Img_Status = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_Yes16.png";
+                }
+                else
+                {
+                    RegDBInfo_Img_Status = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_No16.png";
+                }
             }
             catch (Exception ex)
             {
                 ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+            }
+            finally
+            {
+                ProWindowCursor = Cursors.Arrow;
+            }
+        }
+
+        private async Task<(bool success, bool valid, string message)> ValidateRegionalDb()
+        {
+            try
+            {
+                // Start at invalid
+                Properties.Settings.Default.REGDB_DBVALID = false;
+                Properties.Settings.Default.Save();
+
+                // Ensure national database exists
+                string path = PRZH.GetPath_RegGDB();
+
+                var tryexists = await PRZH.GDBExists(path);
+                if (!tryexists.exists)
+                {
+                    RegDbInfo_Txt_DbName = "";
+                    // TODO: are reg schemas needed?
+                    RegDbInfo_Cmb_SchemaNames = new List<string>();
+                    RegDbInfo_Cmb_SelectedSchemaName = "";
+
+                    return (false, false, tryexists.message);
+                }
+                else if (tryexists.gdbType == GeoDBType.EnterpriseGDB)
+                {
+                    // do nothing here yet...
+                }
+                else if (tryexists.gdbType == GeoDBType.FileGDB)
+                {
+                    RegDbInfo_Txt_DbName = "";
+                    // TODO: are reg schemas needed?
+                    RegDbInfo_Cmb_SchemaNames = new List<string>();
+                    RegDbInfo_Cmb_SelectedSchemaName = "";
+                }
+                else
+                {
+                    return (false, false, tryexists.message);
+                }
+
+                Dictionary<string, int> DICT_Schemas = new Dictionary<string, int>();
+
+                // Retrieve and validate the table list
+                (bool success, string message) outcome = await QueuedTask.Run(() =>
+                {
+                    //var tryget = PRZH.GetGDB_Reg();
+                    var tryget = PRZH.GetGDB(path);
+
+                    // If I'm unable to retrieve the geodatabase, exit.
+                    if (!tryget.success)
+                    {
+                        return (false, tryget.message);
+                    }
+
+                    using (Geodatabase geodatabase = tryget.geodatabase)
+                    {
+                        // Get the database name (if applicable)
+                        if (tryget.gdbType == GeoDBType.EnterpriseGDB)
+                        {
+                            var conn = (DatabaseConnectionProperties)geodatabase.GetConnector();
+                            RegDbInfo_Txt_DbName = ((DatabaseConnectionProperties)geodatabase.GetConnector()).Database;
+                        }
+                        else
+                        {
+                            RegDbInfo_Txt_DbName = "";
+                        }
+
+                        // Get the table names
+                        var table_names = geodatabase.GetDefinitions<TableDefinition>().Select(d => d.GetName());
+                        SQLSyntax syntax = geodatabase.GetSQLSyntax();
+
+                        // process names
+                        foreach (var name in table_names)
+                        {
+                            // parse full name
+                            var parsed = syntax.ParseTableName(name);
+
+                            string db = parsed.Item1;
+                            string schema = parsed.Item2;
+                            string table = parsed.Item3;
+
+                            // add dictionary entry
+                            if (!DICT_Schemas.ContainsKey(schema))
+                            {
+                                DICT_Schemas.Add(schema, 0);
+                            }
+
+                            // now test for Element table
+                            if (string.Equals(table, PRZC.c_TABLE_REGSRC_ELEMENTS, StringComparison.OrdinalIgnoreCase))
+                            {
+                                DICT_Schemas[schema]++;
+                            }
+
+                            // now test for Theme table
+                            if (string.Equals(table, PRZC.c_TABLE_REGSRC_THEMES, StringComparison.OrdinalIgnoreCase))
+                            {
+                                DICT_Schemas[schema]++;
+                            }
+                        }
+                    }
+
+                    return (true, "success");
+                });
+
+                if (!outcome.success)
+                {
+                    return (false, false, outcome.message);
+                }
+
+                // trigger visibility of schema combo control
+                if (tryexists.gdbType == GeoDBType.EnterpriseGDB)
+                {
+                    RegDbInfo_Vis_DockPanel = Visibility.Visible;
+                }
+                else
+                {
+                    RegDbInfo_Vis_DockPanel = Visibility.Hidden;
+                }
+
+                // Review the schema dictionary. KVP having V = 2 are valid (they have an element and a theme table).  KVP less than 2 are invalid
+                List<string> schemas = new List<string>();
+
+                foreach (var KVP in DICT_Schemas)
+                {
+                    if (KVP.Value == 2)
+                    {
+                        schemas.Add(KVP.Key);
+                    }
+                }
+
+                schemas.Sort();
+
+                // Populate the list of schemas
+                if (schemas.Count > 0)
+                {
+                    // There are at least 1 valid schemas (schema containing an element and theme table)
+                    RegDbInfo_Cmb_SchemaNames = schemas;
+
+                    string saved_schema = Properties.Settings.Default.REGDB_SCHEMANAME;
+                    if (!string.IsNullOrEmpty(saved_schema) && schemas.Contains(saved_schema))
+                    {
+                        RegDbInfo_Cmb_SelectedSchemaName = saved_schema;
+                    }
+                    else
+                    {
+                        RegDbInfo_Cmb_SelectedSchemaName = schemas[0];    // first element in the list.
+                    }
+
+                    // save valid status
+                    Properties.Settings.Default.REGDB_DBVALID = true;
+                    Properties.Settings.Default.Save();
+
+                    return (true, true, "success");
+                }
+                else
+                {
+                    // There are no valid schemas - this national database is not a valid one.
+                    RegDbInfo_Cmb_SchemaNames = new List<string>();
+                    RegDbInfo_Cmb_SelectedSchemaName = "";
+
+                    return (true, false, "No valid schemas in this geodatabase.");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                RegDbInfo_Vis_DockPanel = Visibility.Hidden;
+                RegDbInfo_Txt_DbName = "";
+                RegDbInfo_Cmb_SchemaNames = new List<string>();
+                RegDbInfo_Cmb_SelectedSchemaName = "";
+                Properties.Settings.Default.REGDB_DBVALID = false;
+                Properties.Settings.Default.Save();
+
+                return (false, false, ex.Message);
             }
         }
 
@@ -376,6 +637,8 @@ namespace NCC.PRZTools
         {
             try
             {
+                ProMsgBox.Show("Workspace is being initialized, please wait.");
+
                 // Ensure the project folder exists
                 if (!Directory.Exists(PrjSettings_Txt_ProjectFolderPath))
                 {
@@ -473,6 +736,8 @@ namespace NCC.PRZTools
                 {
                     return;
                 }
+
+                ProMsgBox.Show("Workspace is being reset, please wait.");
 
                 // Delete/create the WTW Export folder
                 string wtw_folder = PRZH.GetPath_ExportWTWFolder();

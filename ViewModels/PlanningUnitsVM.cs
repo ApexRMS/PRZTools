@@ -1654,6 +1654,12 @@ namespace NCC.PRZTools
                 }
                 Directory.CreateDirectory(metadata_folder_path);
 
+                // Reset elements folders
+                string nat_elements_folder = PRZH.GetPath_ProjectNationalElementsSubfolder();
+                string reg_elements_folder = PRZH.GetPath_ProjectRegionalElementsSubfolder();
+                if (Directory.Exists(nat_elements_folder)) Directory.Delete(nat_elements_folder, true);
+                if (Directory.Exists(reg_elements_folder)) Directory.Delete(reg_elements_folder, true);
+
                 #endregion
 
                 PRZH.CheckForCancellation(token);
@@ -2074,7 +2080,7 @@ namespace NCC.PRZTools
                     HashSet<int> tiles = new HashSet<int>(tiles_dict.Keys);
 
                     // Save tile list to metadata folder
-                    var trywrite_tiles = PRZH.WriteBinary(tiles, PRZH.GetPath_ProjectTilesMetadataPath());
+                    var trywrite_tiles = await PRZH.WriteBinary(tiles, PRZH.GetPath_ProjectTilesMetadataPath());
                     if (!trywrite_tiles.success)
                     {
                         PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error writing study area tiles.", LogMessageType.ERROR), true, ++val);

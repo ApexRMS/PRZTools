@@ -41,7 +41,7 @@ namespace NCC.PRZTools
         private Cursor _proWindowCursor;
 
         private bool _pu_exists = false;
-        private bool _dir_exists = false;
+        private bool _regdb_exists = false;
 
         private Map _map;
 
@@ -50,7 +50,6 @@ namespace NCC.PRZTools
         private ICommand _cmdLoadRegionalData;
         private ICommand _cmdCancel;
         private ICommand _cmdClearLog;
-        private ICommand _cmdTest;
 
         #endregion
 
@@ -61,8 +60,8 @@ namespace NCC.PRZTools
         private string _compStat_Txt_PlanningUnits_Label;
 
         // Regional Data Folder
-        private string _compStat_Img_RegionalData_Path;
-        private string _compStat_Txt_RegionalData_Label;
+        private string _compStat_Img_RegDB_Path;
+        private string _compStat_Txt_RegDB_Label;
 
         #endregion
 
@@ -114,17 +113,17 @@ namespace NCC.PRZTools
             set => SetProperty(ref _compStat_Txt_PlanningUnits_Label, value, () => CompStat_Txt_PlanningUnits_Label);
         }
 
-        // Regional Data Folder
-        public string CompStat_Img_RegionalData_Path
+        // Regional Database
+        public string CompStat_Img_RegDB_Path
         {
-            get => _compStat_Img_RegionalData_Path;
-            set => SetProperty(ref _compStat_Img_RegionalData_Path, value, () => CompStat_Img_RegionalData_Path);
+            get => _compStat_Img_RegDB_Path;
+            set => SetProperty(ref _compStat_Img_RegDB_Path, value, () => CompStat_Img_RegDB_Path);
         }
 
-        public string CompStat_Txt_RegionalData_Label
+        public string CompStat_Txt_RegDB_Label
         {
-            get => _compStat_Txt_RegionalData_Label;
-            set => SetProperty(ref _compStat_Txt_RegionalData_Label, value, () => CompStat_Txt_RegionalData_Label);
+            get => _compStat_Txt_RegDB_Label;
+            set => SetProperty(ref _compStat_Txt_RegDB_Label, value, () => CompStat_Txt_RegDB_Label);
         }
 
 
@@ -186,11 +185,6 @@ namespace NCC.PRZTools
             PRZH.UpdateProgress(PM, "", false, 0, 1, 0);
         }, () => true, true, false));
 
-        public ICommand CmdTest => _cmdTest ?? (_cmdTest = new RelayCommand(async () =>
-        {
-            await Test();
-        }, () => true, true, false));
-
         #endregion
 
         #endregion
@@ -223,7 +217,7 @@ namespace NCC.PRZTools
         {
             bool edits_are_disabled = !Project.Current.IsEditingEnabled;
             int val = 0;
-            int max = 50;
+            int max = 17;
 
             try
             {
@@ -238,10 +232,6 @@ namespace NCC.PRZTools
                     ProMsgBox.Show("This ArcGIS Pro Project has some unsaved edits.  Please save all edits before proceeding.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("ArcGIS Pro Project has no unsaved edits.  Proceeding..."), true, ++val);
-                }
 
                 // If editing is disabled, enable it temporarily (and disable again in the finally block)
                 if (edits_are_disabled)
@@ -252,76 +242,31 @@ namespace NCC.PRZTools
                         ProMsgBox.Show("Unable to enabled editing for this ArcGIS Pro Project.");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog("ArcGIS Pro editing enabled."), true, ++val);
-                    }
                 }
 
                 #endregion
-
-                // Initialize a few objects and names
-                string gdbpath = PRZH.GetPath_ProjectGDB();
-                string regdirpath = PRZH.GetPath_RegionalDataFolder();
-                string regdirpath_goal = PRZH.GetPath_RegionalDataSubfolder(RegionalDataSubfolder.GOALS);
-                string regdirpath_weight = PRZH.GetPath_RegionalDataSubfolder(RegionalDataSubfolder.WEIGHTS);
-                string regdirpath_includes = PRZH.GetPath_RegionalDataSubfolder(RegionalDataSubfolder.INCLUDES);
-                string regdirpath_excludes = PRZH.GetPath_RegionalDataSubfolder(RegionalDataSubfolder.EXCLUDES);
 
                 // Declare some generic GP variables
                 IReadOnlyList<string> toolParams;
                 IReadOnlyList<KeyValuePair<string, string>> toolEnvs;
                 GPExecuteToolFlags toolFlags_GP = GPExecuteToolFlags.GPThread;
-                GPExecuteToolFlags toolFlags_GPRefresh = GPExecuteToolFlags.RefreshProjectItems | GPExecuteToolFlags.GPThread;
+                GPExecuteToolFlags toolFlags_GPRefresh = GPExecuteToolFlags.GPThread | GPExecuteToolFlags.RefreshProjectItems;
                 string toolOutput;
 
                 // Initialize ProgressBar and Progress Log
                 PRZH.UpdateProgress(PM, PRZH.WriteLog("Initializing the Regional Data Extractor..."), false, max, ++val);
 
                 // Ensure the Project Geodatabase Exists
-                var try_gdbexists = await PRZH.GDBExists_Project();
-                if (!try_gdbexists.exists)
+                string gdbpath = PRZH.GetPath_ProjectGDB();
+                var tryex_gdb = await PRZH.GDBExists_Project();
+
+                if (!tryex_gdb.exists)
                 {
                     PRZH.UpdateProgress(PM, PRZH.WriteLog($"Project Geodatabase not found: '{gdbpath}'.", LogMessageType.VALIDATION_ERROR), true, ++val);
                     ProMsgBox.Show($"Project Geodatabase not found at {gdbpath}.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Project Geodatabase found at {gdbpath}."), true, ++val);
-                }
 
-                // Ensure the Regional Data Folder exists
-                if (!PRZH.FolderExists_RegionalData().exists)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Regional Data Folder not found: {regdirpath}", LogMessageType.VALIDATION_ERROR), true, ++val);
-                    ProMsgBox.Show($"Regional Data Folder not found at {regdirpath}");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Regional Data Folder exists at {regdirpath}."), true, ++val);
-                }
-
-                // Determine the existence of the 4 possible regional data subfolders
-                bool direxists_goals = PRZH.FolderExists_RegionalDataSubfolder(RegionalDataSubfolder.GOALS).exists;
-                bool direxists_weights = PRZH.FolderExists_RegionalDataSubfolder(RegionalDataSubfolder.WEIGHTS).exists;
-                bool direxists_includes = PRZH.FolderExists_RegionalDataSubfolder(RegionalDataSubfolder.INCLUDES).exists;
-                bool direxists_excludes = PRZH.FolderExists_RegionalDataSubfolder(RegionalDataSubfolder.EXCLUDES).exists;
-
-                // Ensure there's at least one subfolder
-                if (!direxists_goals & !direxists_weights & !direxists_includes & !direxists_excludes)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Regional Data Folder must contain at least one of the following subfolders: {PRZC.c_DIR_REGDATA_GOALS}, {PRZC.c_DIR_REGDATA_WEIGHTS}, {PRZC.c_DIR_REGDATA_INCLUDES}, {PRZC.c_DIR_REGDATA_EXCLUDES}", LogMessageType.VALIDATION_ERROR), true, ++val);
-                    ProMsgBox.Show($"Regional Data Folder must contain at least one of the following subfolders: { PRZC.c_DIR_REGDATA_GOALS}, { PRZC.c_DIR_REGDATA_WEIGHTS}, { PRZC.c_DIR_REGDATA_INCLUDES}, { PRZC.c_DIR_REGDATA_EXCLUDES}");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Regional Data Subfolders found: {(direxists_goals ? PRZC.c_DIR_REGDATA_GOALS : "")}  {(direxists_weights ? PRZC.c_DIR_REGDATA_WEIGHTS : "")}  {(direxists_includes ? PRZC.c_DIR_REGDATA_INCLUDES : "")}  {(direxists_excludes ? PRZC.c_DIR_REGDATA_EXCLUDES : "")}"), true, ++val);
-                }
-
-                // Ensure the Planning Unit dataset exists
                 // Planning Unit existence
                 var tryex_pudata = await PRZH.PUDataExists();
                 if (!tryex_pudata.exists)
@@ -330,24 +275,16 @@ namespace NCC.PRZTools
                     ProMsgBox.Show($"Planning Units dataset not found.");
                     return;
                 }
-                else
+
+                // Ensure the Regional db exists
+                string regpath = PRZH.GetPath_RegGDB();
+                var tryexists_reg = await PRZH.GDBExists_Reg();
+                if (!tryexists_reg.exists)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Planning Units dataset exists."), true, ++val);
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Valid Regional Geodatabase not found: '{regpath}'.", LogMessageType.VALIDATION_ERROR), true, ++val);
+                    ProMsgBox.Show($"Valid Regional Geodatabase not found at {regpath}.");
+                    return;
                 }
-
-                // Establish if the planning units are nationally enabled
-                bool national_enabled = tryex_pudata.national_enabled;
-
-                // Get the Planning Unit Spatial Reference
-                SpatialReference PlanningUnitSR = await QueuedTask.Run(() =>
-                {
-                    var tryget_fc = PRZH.GetFC_Project(PRZC.c_FC_PLANNING_UNITS);
-                    using (FeatureClass featureClass = tryget_fc.featureclass)
-                    using (FeatureClassDefinition fcDef = featureClass.GetDefinition())
-                    {
-                        return fcDef.GetSpatialReference();
-                    }
-                });
 
                 if (ProMsgBox.Show($"If you proceed, any existing Regional Theme and Element tables in the Project Geodatabase will be overwritten." +
                     Environment.NewLine + Environment.NewLine +
@@ -366,38 +303,29 @@ namespace NCC.PRZTools
 
                 #endregion
 
-                #region DICTIONARIES
+                #region DELETE EXISTING GEODATABASE OBJECTS
 
-                // Prepare dictionary of puids > cellnumbers (this data is optional)
-                Dictionary<int, long> DICT_PUID_and_cellnumbers = new Dictionary<int, long>();
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting existing project tables..."), true, ++val);
 
-                if (national_enabled)
+                // Delete the Regional Theme Table if present
+                if ((await PRZH.TableExists_Project(PRZC.c_TABLE_REGPRJ_THEMES)).exists)
                 {
-                    (bool success, Dictionary<int, long> dict, string message) tryget_cellnumbers = await PRZH.GetPUIDsAndCellNumbers();    // this dictionary could have no entries, if the PU dataset has no populated cell_numbers
-                    if (!tryget_cellnumbers.success)
+                    toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_REGPRJ_THEMES);
+                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
+                    toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
+                    if (toolOutput == null)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving puid dictionary.", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error retrieving puid dictionary.");
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the {PRZC.c_TABLE_REGPRJ_THEMES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
+                        ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_REGPRJ_THEMES} table.");
                         return;
                     }
-
-                    DICT_PUID_and_cellnumbers = tryget_cellnumbers.dict;
                 }
 
-                #endregion
-
-                #region RETRIEVE PLANNING UNIT DETAILS
-
-                #endregion
-
                 PRZH.CheckForCancellation(token);
-
-                #region DELETE EXISTING GEODATABASE OBJECTS
 
                 // Delete the Regional Element table if present
                 if ((await PRZH.TableExists_Project(PRZC.c_TABLE_REGPRJ_ELEMENTS)).exists)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting the {PRZC.c_TABLE_REGPRJ_ELEMENTS} table..."), true, ++val);
                     toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_REGPRJ_ELEMENTS);
                     toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
                     toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
@@ -407,276 +335,47 @@ namespace NCC.PRZTools
                         ProMsgBox.Show($"Error deleting the {PRZC.c_TABLE_REGPRJ_ELEMENTS} table.");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Table deleted successfully."), true, ++val);
-                    }
                 }
 
-                PRZH.CheckForCancellation(token);
-
-                // Delete any regional element tables
-                var tryget_tables = await PRZH.GetRegionalElementTables();
-
-                if (!tryget_tables.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving list of regional element tables.", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error retrieving list of regional element tables.");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"{tryget_tables.tables.Count} regional element tables found."), true, ++val);
-                }
-
-                if (tryget_tables.tables.Count > 0)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting {tryget_tables.tables.Count} regional element tables..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(string.Join(";", tryget_tables.tables));
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                    toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting the regional element tables ({string.Join(";", tryget_tables.tables)}.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error deleting the regional element tables.");
-                        return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Regional element tables deleted successfully."), true, ++val);
-                    }
-                }
-
-                // Delete any regional temp rasters
-                var tryget_regras = await PRZH.GetRegionalElementRasters();
-                if (!tryget_regras.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving list of regional element rasters.", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error retrieving list of regional element rasters.");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"{tryget_regras.rasters.Count} regional element rasters found."), true, ++val);
-                }
-
-                if (tryget_regras.rasters.Count > 0)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting {tryget_regras.rasters.Count} regional element rasters..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(string.Join(";", tryget_regras.rasters));
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                    toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting regional element rasters.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error deleting the regional element rasters.");
-                        return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Regional element rasters deleted successfully."), true, ++val);
-                    }
-                }
-
-                // Delete and rebuild Regional FDS
-                // delete...
-                var tryex_regfds = await PRZH.FDSExists_Project(PRZC.c_FDS_REGIONAL_ELEMENTS);
-                if (tryex_regfds.exists)
-                {
-                    // delete it
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Deleting {PRZC.c_FDS_REGIONAL_ELEMENTS} FDS..."), true, ++val);
-                    toolParams = Geoprocessing.MakeValueArray(PRZC.c_FDS_REGIONAL_ELEMENTS);
-                    toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath);
-                    toolOutput = await PRZH.RunGPTool("Delete_management", toolParams, toolEnvs, toolFlags_GP);
-                    if (toolOutput == null)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error deleting {PRZC.c_FDS_REGIONAL_ELEMENTS} FDS.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error deleting {PRZC.c_FDS_REGIONAL_ELEMENTS} FDS.");
-                        return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"FDS deleted successfully."), true, ++val);
-                    }
-                }
-
-                // (re)build!
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Creating {PRZC.c_FDS_REGIONAL_ELEMENTS} feature dataset..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(gdbpath, PRZC.c_FDS_REGIONAL_ELEMENTS, PlanningUnitSR);
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(
-                    workspace: gdbpath,
-                    overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CreateFeatureDataset_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating feature dataset.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error creating feature dataset.");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Feature dataset created."), true, ++val);
-                }
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done deleting existing project tables..."), true, ++val);
 
                 #endregion
 
                 PRZH.CheckForCancellation(token);
 
-                #region CREATE REGIONAL ELEMENT TABLE
+                #region Process Regional tables
 
-                // Create the table
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Creating the {PRZC.c_TABLE_REGPRJ_ELEMENTS} table..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(gdbpath, PRZC.c_TABLE_REGPRJ_ELEMENTS, "", "", "Regional Elements");
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("CreateTable_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
+                // Process the regional tables
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Processing regional database..."), true, ++val);
+
+                var tryregdb = await ProcessRegionalDbTables(token);
+
+                if (!tryregdb.success)
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error creating the {PRZC.c_TABLE_REGPRJ_ELEMENTS} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error creating the {PRZC.c_TABLE_REGPRJ_ELEMENTS} table.");
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error processing Regional DB tables.\n{tryregdb.message}", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show($"Error processing Regional DB tables.\n{tryregdb.message}.");
                     return;
                 }
                 else
                 {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Created the {PRZC.c_TABLE_REGPRJ_ELEMENTS} table."), true, ++val);
+                    val = PM.Current;
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done processing regional database..."), true, ++val);
                 }
 
                 PRZH.CheckForCancellation(token);
-
-                // Add fields to the table
-                string fldElementID = PRZC.c_FLD_TAB_REGELEMENT_ELEMENT_ID + " LONG 'Element ID' # 0 #;";
-                string fldElementName = PRZC.c_FLD_TAB_REGELEMENT_NAME + " TEXT 'Element Name' 100 # #;";
-                string fldElementType = PRZC.c_FLD_TAB_REGELEMENT_TYPE + $" SHORT 'Element Type' # # '{PRZC.c_DOMAIN_REG_TYPE}';";
-                string fldElementStatus = PRZC.c_FLD_TAB_REGELEMENT_STATUS + $" SHORT 'Element Status' # # '{PRZC.c_DOMAIN_REG_STATUS}';";
-                string fldThemeID = PRZC.c_FLD_TAB_REGELEMENT_THEME_ID + $" SHORT 'Theme ID' # # '{PRZC.c_DOMAIN_REG_THEME}';";
-                string fldElementPresence = PRZC.c_FLD_TAB_REGELEMENT_PRESENCE + $" SHORT 'Element Presence' # # '{PRZC.c_DOMAIN_PRESENCE}';";
-                string fldLyrxPath = PRZC.c_FLD_TAB_REGELEMENT_LYRXPATH + " TEXT 'Lyrx Path' 250 # #;";
-                string fldLayerName = PRZC.c_FLD_TAB_REGELEMENT_LAYERNAME + " TEXT 'Layer Name' 100 # #;";
-                string fldLayerType = PRZC.c_FLD_TAB_REGELEMENT_LAYERTYPE + " TEXT 'Layer Type' 20 # #;";
-                string fldLayerJson = PRZC.c_FLD_TAB_REGELEMENT_LAYERJSON + " TEXT 'Layer JSON' 100000 # #;";
-                string fldLayerWhereClause = PRZC.c_FLD_TAB_REGELEMENT_WHERECLAUSE + " TEXT 'WHERE Clause' 1000 # #;";
-                string fldLegendGroup = PRZC.c_FLD_TAB_REGELEMENT_LEGENDGROUP + " TEXT 'Legend Group' 100 # #;";
-                string fldLegendClass = PRZC.c_FLD_TAB_REGELEMENT_LEGENDCLASS + " TEXT 'Legend Class' 100 # #;";
-
-                string fields = fldElementID + 
-                                fldElementName + 
-                                fldElementType + 
-                                fldElementStatus + 
-                                fldThemeID + 
-                                fldElementPresence + 
-                                fldLyrxPath +
-                                fldLayerName + 
-                                fldLayerType +
-                                fldLayerJson +
-                                fldLayerWhereClause +
-                                fldLegendGroup +
-                                fldLegendClass;
-
-                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Adding fields to the {PRZC.c_TABLE_REGPRJ_ELEMENTS} table..."), true, ++val);
-                toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_REGPRJ_ELEMENTS, fields);
-                toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
-                toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
-                if (toolOutput == null)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to the {PRZC.c_TABLE_REGPRJ_ELEMENTS} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error adding fields to the {PRZC.c_TABLE_REGPRJ_ELEMENTS} table.");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Fields added successfully."), true, ++val);
-                }
 
                 #endregion
 
-                PRZH.CheckForCancellation(token);
-
-                #region PROCESS EACH REGIONAL SUBDIR
-
-                if (direxists_goals)
-                {
-                    var subdir = RegionalDataSubfolder.GOALS;
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Processing the regional {subdir} directory..."), true, ++val);
-                    var tryprocess = await ProcessRegionalFolder(subdir, DICT_PUID_and_cellnumbers, token);
-
-                    if (!tryprocess.success)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error processing the regional {subdir} directory.\n{tryprocess.message}"), true, ++val);
-                        return;
-                    }
-                }
-
-                PRZH.CheckForCancellation(token);
-
-                if (direxists_weights)
-                {
-                    var subdir = RegionalDataSubfolder.WEIGHTS;
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Processing the regional {subdir} directory..."), true, ++val);
-                    var tryprocess = await ProcessRegionalFolder(subdir, DICT_PUID_and_cellnumbers, token);
-
-                    if (!tryprocess.success)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error processing the regional {subdir} directory.\n{tryprocess.message}"), true, ++val);
-                        return;
-                    }
-                }
-
-                PRZH.CheckForCancellation(token);
-
-                if (direxists_includes)
-                {
-                    var subdir = RegionalDataSubfolder.INCLUDES;
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Processing the regional {subdir} directory..."), true, ++val);
-                    var tryprocess = await ProcessRegionalFolder(subdir, DICT_PUID_and_cellnumbers, token);
-
-                    if (!tryprocess.success)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error processing the regional {subdir} directory.\n{tryprocess.message}"), true, ++val);
-                        return;
-                    }
-                }
-
-                PRZH.CheckForCancellation(token);
-
-                if (direxists_excludes)
-                {
-                    var subdir = RegionalDataSubfolder.EXCLUDES;
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Processing the regional {subdir} directory..."), true, ++val);
-                    var tryprocess = await ProcessRegionalFolder(subdir, DICT_PUID_and_cellnumbers, token);
-
-                    if (!tryprocess.success)
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error processing the regional {subdir} directory.\n{tryprocess.message}"), true, ++val);
-                        return;
-                    }
-                }
-
-                #endregion
-
-                PRZH.CheckForCancellation(token);
-
-                #region GENERATE REGIONAL SPATIAL DATASETS
-
-                // Generate the Regional Element spatial datasets
-                var tryspat = await GenerateSpatialDatasets(token);
-                if (!tryspat.success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error generating regional spatial datasets.\n{tryspat.message}", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error generating regional spatial datasets.\n{tryspat.message}.");
-                    return;
-                }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Regional spatial datasets generated successfully."), true, ++val);
-                }
-
-                #endregion
+                // TODO: Visualize regional database data without Feature classes
 
                 PRZH.CheckForCancellation(token);
 
                 #region WRAP UP
 
+                PRZH.UpdateProgress(PM, PRZH.WriteLog("Wrapping up..."), true, ++val);
+
                 // Compact the Geodatabase
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("Compacting the Geodatabase..."), true, ++val);
                 toolParams = Geoprocessing.MakeValueArray(gdbpath);
                 toolOutput = await PRZH.RunGPTool("Compact_management", toolParams, null, toolFlags_GPRefresh);
                 if (toolOutput == null)
@@ -685,28 +384,25 @@ namespace NCC.PRZTools
                     ProMsgBox.Show("Error compacting the geodatabase.");
                     return;
                 }
-                else
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Geodatabase compacted."), true, ++val);
-                }
 
                 PRZH.CheckForCancellation(token);
 
-                // Refresh the Map & TOC
-                if (!(await PRZH.RedrawPRZLayers(_map)).success)
-                {
-                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error redrawing the PRZ layers.", LogMessageType.ERROR), true, ++val);
-                    ProMsgBox.Show($"Error redrawing the PRZ layers.");
-                    return;
-                }
+                // TODO: Should this be enabled by default? Could be slow. Decide after re-implementing visualizations
+                /*                // Refresh the Map & TOC
+                                if (!(await PRZH.RedrawPRZLayers(_map)).success)
+                                {
+                                    PRZH.UpdateProgress(PM, PRZH.WriteLog("Error redrawing the PRZ layers.", LogMessageType.ERROR), true, ++val);
+                                    ProMsgBox.Show($"Error redrawing the PRZ layers.");
+                                    return;
+                                }*/
 
                 // Final message
                 stopwatch.Stop();
                 string message = PRZH.GetElapsedTimeMessage(stopwatch.Elapsed);
-                PRZH.UpdateProgress(PM, PRZH.WriteLog("Regional data load completed successfully."), true, 1, 1);
+                PRZH.UpdateProgress(PM, PRZH.WriteLog("Regional data extraction completed successfully!"), true, 1, 1);
                 PRZH.UpdateProgress(PM, PRZH.WriteLog(message), true, 1, 1);
 
-                ProMsgBox.Show("Regional data load completed successfully!" + Environment.NewLine + Environment.NewLine + message);
+                ProMsgBox.Show("Regional data extraction completed successfully!" + Environment.NewLine + Environment.NewLine + message);
 
                 #endregion
             }
@@ -732,7 +428,407 @@ namespace NCC.PRZTools
             }
         }
 
-        private async Task<(bool success, string message)> ProcessRegionalFolder(
+        private async Task<(bool success, string message)> ProcessRegionalDbTables(CancellationToken token)
+        {
+            int val = PM.Current;
+            int max = PM.Max;
+
+            try
+            {
+                // Declare some generic GP variables
+                IReadOnlyList<string> toolParams;
+                IReadOnlyList<KeyValuePair<string, string>> toolEnvs;
+                GPExecuteToolFlags toolFlags_GP = GPExecuteToolFlags.GPThread;
+                string toolOutput;
+
+                #region Initialize project tables
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Initializing project tables..."), true, ++val);
+
+                // COPY THE ELEMENT TABLE
+                string gdbpath = PRZH.GetPath_ProjectGDB();
+                string regdbpath = PRZH.GetPath_RegGDB();
+
+                var q_elem = await PRZH.GetRegDBQualifiedName(PRZC.c_TABLE_REGSRC_ELEMENTS);
+                string inputelempath = Path.Combine(regdbpath, q_elem.qualified_name);
+                toolParams = Geoprocessing.MakeValueArray(inputelempath, PRZC.c_TABLE_REGPRJ_ELEMENTS, "", "");
+                toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
+                toolOutput = await PRZH.RunGPTool("Copy_management", toolParams, toolEnvs, toolFlags_GP);
+                if (toolOutput == null)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error copying the {PRZC.c_TABLE_REGSRC_ELEMENTS} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show($"Error copying the {PRZC.c_TABLE_REGSRC_ELEMENTS} table.");
+                    return (false, "table copy error.");
+                }
+
+                PRZH.CheckForCancellation(token);
+
+                // ALTER ALIAS NAME OF ELEMENT TABLE
+                await QueuedTask.Run(() =>
+                {
+                    var tryget_projectgdb = PRZH.GetGDB_Project();
+
+                    if (!tryget_projectgdb.success)
+                    {
+                        throw new Exception("Error opening project geodatabase.");
+                    }
+
+                    using (Geodatabase geodatabase = tryget_projectgdb.geodatabase)
+                    using (Table table = geodatabase.OpenDataset<Table>(PRZC.c_TABLE_REGPRJ_ELEMENTS))
+                    using (TableDefinition tblDef = table.GetDefinition())
+                    {
+                        // Get the Table Description
+                        TableDescription tblDescr = new TableDescription(tblDef);
+                        tblDescr.AliasName = "Regional Elements";
+
+                        // get the schemabuilder
+                        SchemaBuilder schemaBuilder = new SchemaBuilder(geodatabase);
+                        schemaBuilder.Modify(tblDescr);
+                        var success = schemaBuilder.Build();
+                    }
+                });
+
+                // INSERT EXTRA FIELDS INTO ELEMENT TABLE
+                string fldElemPresence = PRZC.c_FLD_TAB_REGELEMENT_PRESENCE + $" SHORT 'Presence' # {(int)ElementPresence.Absent} '" + PRZC.c_DOMAIN_PRESENCE + "';";
+                string flds = fldElemPresence;
+
+                toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_REGPRJ_ELEMENTS, flds);
+                toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
+                toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
+                if (toolOutput == null)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to the copied {PRZC.c_TABLE_REGPRJ_ELEMENTS} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show($"Error adding fields to the copied {PRZC.c_TABLE_REGPRJ_ELEMENTS} table.");
+                    return (false, "field addition error.");
+                }
+
+                PRZH.CheckForCancellation(token);
+
+                // COPY THE THEMES TABLE
+                var q_theme = await PRZH.GetRegDBQualifiedName(PRZC.c_TABLE_REGSRC_THEMES);
+                string inputthemepath = Path.Combine(regdbpath, q_theme.qualified_name);
+                toolParams = Geoprocessing.MakeValueArray(inputthemepath, PRZC.c_TABLE_REGPRJ_THEMES, "", "");
+                toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
+                toolOutput = await PRZH.RunGPTool("Copy_management", toolParams, toolEnvs, toolFlags_GP);
+                if (toolOutput == null)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error copying the {PRZC.c_TABLE_REGSRC_THEMES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show($"Error copying the {PRZC.c_TABLE_REGSRC_THEMES} table.");
+                    return (false, "table copy error.");
+                }
+
+                PRZH.CheckForCancellation(token);
+
+                // ALTER ALIAS NAME OF THEME TABLE
+                await QueuedTask.Run(() =>
+                {
+                    var tryget_projectgdb = PRZH.GetGDB_Project();
+
+                    if (!tryget_projectgdb.success)
+                    {
+                        throw new Exception("Error opening project geodatabase.");
+                    }
+
+                    using (Geodatabase geodatabase = tryget_projectgdb.geodatabase)
+                    using (Table table = geodatabase.OpenDataset<Table>(PRZC.c_TABLE_REGPRJ_THEMES))
+                    using (TableDefinition tblDef = table.GetDefinition())
+                    {
+                        // Get the Table Description
+                        TableDescription tblDescr = new TableDescription(tblDef);
+                        tblDescr.AliasName = "Regional Themes";
+
+                        // get the schemabuilder
+                        SchemaBuilder schemaBuilder = new SchemaBuilder(geodatabase);
+                        schemaBuilder.Modify(tblDescr);
+                        var success = schemaBuilder.Build();
+                    }
+                });
+
+                // INSERT EXTRA FIELDS INTO THEME TABLE
+                string fldThemePresence = PRZC.c_FLD_TAB_REGTHEME_PRESENCE + $" SHORT 'Presence' # {(int)ElementPresence.Absent} '" + PRZC.c_DOMAIN_PRESENCE + "';";
+                flds = fldThemePresence;
+
+                toolParams = Geoprocessing.MakeValueArray(PRZC.c_TABLE_REGPRJ_THEMES, flds);
+                toolEnvs = Geoprocessing.MakeEnvironmentArray(workspace: gdbpath, overwriteoutput: true);
+                toolOutput = await PRZH.RunGPTool("AddFields_management", toolParams, toolEnvs, toolFlags_GP);
+                if (toolOutput == null)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error adding fields to the copied {PRZC.c_TABLE_REGPRJ_THEMES} table.  GP Tool failed or was cancelled by user.", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show($"Error adding fields to the copied {PRZC.c_TABLE_REGPRJ_THEMES} table.");
+                    return (false, "field addition error.");
+                }
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done initializing project tables..."), true, ++val);
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
+                #region RETRIEVE AND PREPARE INFO FROM REGIONAL DATABASE
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Parsing regional themes and elements..."), true, ++val);
+
+                // Get the Regional Themes from the copied regional themes table
+                var theme_outcome = await PRZH.GetRegionalThemes();
+                if (!theme_outcome.success)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving regional themes.\n{theme_outcome.message}", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show($"Error retrieving regional themes.\n{theme_outcome.message}");
+                    return (false, "error retrieving themes.");
+                }
+                else
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {theme_outcome.themes.Count} regional themes."), true, ++val);
+                }
+                List<RegTheme> themes = theme_outcome.themes;
+
+                PRZH.CheckForCancellation(token);
+
+                // Get the Regional Elements from the copied regional elements table
+                var elem_outcome = await PRZH.GetRegionalElements();
+                if (!elem_outcome.success)
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving regional elements.\n{elem_outcome.message}", LogMessageType.ERROR), true, ++val);
+                    ProMsgBox.Show($"Error retrieving regional elements.\n{elem_outcome.message}");
+                    return (false, "error retrieving elements.");
+                }
+                else
+                {
+                    PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {elem_outcome.elements.Count} regional elements."), true, ++val);
+                }
+                List<RegElement> elements = elem_outcome.elements;
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done parsing regional themes and elements..."), true, ++val);
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
+                #region RETRIEVE INTERSECTING ELEMENTS
+
+                int log_every = 500;
+                int steps = elements.Count() / log_every;
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Finding intersecting cells in Regional Database..."), true, max + steps, ++val);
+
+                #region Setup
+                // Construct dictionary of planning units / regional grid ids
+                var outcome = await PRZH.GetCellNumbersAndPUIDs();
+                if (!outcome.success)
+                {
+                    throw new Exception("Error constructing PUID dictionary, try rebuilding planning units.");
+                }
+                Dictionary<long, int> study_area_cells = outcome.dict;
+
+                // Load tile metadata for study area and regional database
+                var tryread_studyarea_tiles = await PRZH.ReadBinary(PRZH.GetPath_ProjectTilesMetadataPath());
+                var tryread_regdata_tiles = await PRZH.ReadBinary(PRZH.GetPath_RegionalDatabaseElementsTileMetadataPath());
+
+                if (!tryread_studyarea_tiles.success)
+                {
+                    throw new Exception(tryread_studyarea_tiles.message);
+                }
+                HashSet<int> study_area_tiles = (HashSet<int>)tryread_studyarea_tiles.obj;
+
+                if (!tryread_regdata_tiles.success)
+                {
+                    throw new Exception(tryread_regdata_tiles.message);
+                }
+                Dictionary<int, HashSet<int>> regdata_tiles = (Dictionary<int, HashSet<int>>)tryread_regdata_tiles.obj;
+
+                // Setup up lists to track which elements, themes, and tiles are present
+                Dictionary<string, HashSet<int>> element_tiles_present = new Dictionary<string, HashSet<int>>();
+                HashSet<int> elements_present = new HashSet<int>();
+                HashSet<int> themes_present = new HashSet<int>();
+
+                // Refresh project-scope elements folder
+                string output_elements_folder = PRZH.GetPath_ProjectRegionalElementsSubfolder();
+                if (Directory.Exists(output_elements_folder))
+                {
+                    Directory.Delete(output_elements_folder, true);
+                }
+                Directory.CreateDirectory(output_elements_folder);
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
+                // Find intersecting cells
+                string input_elements_folder = PRZH.GetPath_RegionalDatabaseElementsSubfolder();
+                int progress = 0;
+
+                await Parallel.ForEachAsync(elements, async (element, token) =>
+                {
+                    progress++;
+                    if (progress % log_every == 0)
+                    {
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done processing {progress} / {elements.Count()} regional elements."), true, ++val);
+                    }
+
+                    // Determine which if any tiles overlap
+                    regdata_tiles[element.ElementID].IntersectWith(study_area_tiles);
+
+                    // Skip elements with no overlapping tiles
+                    if (regdata_tiles[element.ElementID].Count == 0)
+                        return;
+
+                    // Read in relevant element data tiles from regional database
+                    foreach (int tile_id in regdata_tiles[element.ElementID])
+                    {
+                        string tile_filepath = Path.Combine(input_elements_folder, $"{element.ElementTable}-{tile_id}.bin");
+                        var tryread_tile = await PRZH.ReadBinary(tile_filepath);
+
+                        if (!tryread_tile.success)
+                        {
+                            throw new Exception(tryread_tile.message);
+                        }
+
+                        // Identify overlapping cells
+                        // TODO: Could this be faster by splitting sutdy_area_cells by tile to limit search space?
+                        Dictionary<long, double> intersecting_cells = ((Dictionary<long, double>)tryread_tile.obj).Where(x => study_area_cells.ContainsKey(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+
+                        if (intersecting_cells.Count() == 0) continue;
+
+                        // Write to project
+                        var trywrite = await PRZH.WriteBinary(intersecting_cells, Path.Combine(output_elements_folder, $"{element.ElementTable}-{tile_id}.bin"));
+
+                        if (!trywrite.success)
+                        {
+                            throw new Exception(trywrite.message);
+                        }
+                    }
+
+                    PRZH.CheckForCancellation(token);
+                });
+
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done finding intersecting cells..."), true, ++val);
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
+                #region Update the element presence field
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Updating project tables..."), true, ++val);
+
+                // Identify elements that are present by id
+                foreach (string f in Directory.GetFiles(output_elements_folder))
+                {
+                    string[] element_info = Path.GetFileNameWithoutExtension(f).Split('-', 2);
+                    int element_id = Convert.ToInt32(element_info[0].Substring(1));
+                    int tile_id = Convert.ToInt32(element_info[1]);
+
+                    if (!elements_present.Contains(element_id))
+                    {
+                        elements_present.Add(element_id);
+                        element_tiles_present.Add(element_info[0], new HashSet<int>());
+                    }
+                    element_tiles_present[element_info[0]].Add(tile_id);
+                }
+
+                // Save list of intersecting elements and tiles to dictionary
+                var trywrite_tiles = await PRZH.WriteBinary(element_tiles_present, PRZH.GetPath_ProjectRegionalElementTilesMetadataPath());
+                if (!trywrite_tiles.success)
+                {
+                    throw new Exception(trywrite_tiles.message);
+                }
+
+                // Update the table
+                await QueuedTask.Run(() =>
+                {
+                    var tryget_gdb = PRZH.GetGDB_Project();
+
+                    using (Geodatabase geodatabase = tryget_gdb.geodatabase)
+                    using (Table table = geodatabase.OpenDataset<Table>(PRZC.c_TABLE_REGPRJ_ELEMENTS))
+                    using (RowCursor rowCursor = table.Search(null, false))
+                    {
+                        geodatabase.ApplyEdits(() =>
+                        {
+                            while (rowCursor.MoveNext())
+                            {
+                                using (Row row = rowCursor.Current)
+                                {
+                                    if (elements_present.Contains((int)row[PRZC.c_FLD_TAB_REGELEMENT_ELEMENT_ID]))
+                                    {
+                                        row[PRZC.c_FLD_TAB_REGELEMENT_PRESENCE] = (int)ElementPresence.Present;
+                                        int theme_id = (int)row[PRZC.c_FLD_TAB_REGELEMENT_THEME_ID];
+                                        if (!themes_present.Contains(theme_id))
+                                        {
+                                            themes_present.Add(theme_id);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        row[PRZC.c_FLD_TAB_REGELEMENT_PRESENCE] = (int)ElementPresence.Absent;
+                                    }
+
+                                    row.Store();
+                                }
+                            }
+                        });
+                    }
+                });
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
+                #region UPDATE THE LOCAL THEME TABLE PRESENCE FIELD
+
+                // Update the table
+                await QueuedTask.Run(() =>
+                {
+                    var tryget_gdb = PRZH.GetGDB_Project();
+
+                    using (Geodatabase geodatabase = tryget_gdb.geodatabase)
+                    using (Table table = geodatabase.OpenDataset<Table>(PRZC.c_TABLE_REGPRJ_THEMES))
+                    using (RowCursor rowCursor = table.Search(null, false))
+                    {
+                        geodatabase.ApplyEdits(() =>
+                        {
+                            while (rowCursor.MoveNext())
+                            {
+                                using (Row row = rowCursor.Current)
+                                {
+                                    int theme_id = (int)row[PRZC.c_FLD_TAB_REGTHEME_THEME_ID];
+
+                                    if (themes_present.Contains(theme_id))
+                                    {
+                                        row[PRZC.c_FLD_TAB_REGTHEME_PRESENCE] = (int)ElementPresence.Present;
+                                    }
+                                    else
+                                    {
+                                        row[PRZC.c_FLD_TAB_REGTHEME_PRESENCE] = (int)ElementPresence.Absent;
+                                    }
+
+                                    row.Store();
+                                }
+                            }
+                        });
+                    }
+                });
+
+                PRZH.UpdateProgress(PM, PRZH.WriteLog($"Done updating project tables..."), true, ++val);
+
+                #endregion
+
+                PRZH.CheckForCancellation(token);
+
+                return (true, "success");
+            }
+            catch (OperationCanceledException cancelex)
+            {
+                throw cancelex;
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+
+        // TODO: Remove?
+        /*private async Task<(bool success, string message)> ProcessRegionalFolder(
             RegionalDataSubfolder subFolderType,
             Dictionary<int, long> DICT_PUID_and_cellnumbers,
             CancellationToken token)
@@ -2158,9 +2254,9 @@ namespace NCC.PRZTools
             {
                 return (false, ex.Message);
             }
-        }
+        }*/
 
-        private async Task<(bool success, string message)> GenerateSpatialDatasets(CancellationToken token)
+        /*private async Task<(bool success, string message)> GenerateSpatialDatasets(CancellationToken token)
         {
             int val = PM.Current;
             int max = PM.Max;
@@ -2488,7 +2584,7 @@ namespace NCC.PRZTools
             {
                 return (false, ex.Message);
             }
-        }
+        }*/
 
         private async Task ValidateControls()
         {
@@ -2509,17 +2605,17 @@ namespace NCC.PRZTools
                 }
 
                 // Regional Directory existence
-                _dir_exists = PRZH.FolderExists_RegionalData().exists;
+                _regdb_exists = (await PRZH.GDBExists_Reg()).exists;
 
-                if (_dir_exists)
+                if (_regdb_exists)
                 {
-                    CompStat_Txt_RegionalData_Label = $"Regional Data Folder found at path: {PRZH.GetPath_RegionalDataFolder()}";
-                    CompStat_Img_RegionalData_Path = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_Yes16.png";
+                    CompStat_Txt_RegDB_Label = $"Regional Data Folder found at path: {PRZH.GetPath_RegionalDataFolder()}";
+                    CompStat_Img_RegDB_Path = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_Yes16.png";
                 }
                 else
                 {
-                    CompStat_Txt_RegionalData_Label = $"Regional Data Folder not found at path: {PRZH.GetPath_RegionalDataFolder()}";
-                    CompStat_Img_RegionalData_Path = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_No16.png";
+                    CompStat_Txt_RegDB_Label = $"Regional Data Folder not found at path: {PRZH.GetPath_RegionalDataFolder()}";
+                    CompStat_Img_RegDB_Path = "pack://application:,,,/PRZTools;component/ImagesWPF/ComponentStatus_No16.png";
                 }
             }
             catch (Exception ex)
@@ -2540,74 +2636,10 @@ namespace NCC.PRZTools
         private void ResetOpUI()
         {
             ProWindowCursor = Cursors.Arrow;
-            Operation_Cmd_IsEnabled = _pu_exists && _dir_exists;
+            Operation_Cmd_IsEnabled = _pu_exists && _regdb_exists;
             OpStat_Img_Visibility = Visibility.Hidden;
             OpStat_Txt_Label = "Idle";
             _operationIsUnderway = false;
-        }
-
-        private async Task Test()
-        {
-            int val = PM.Current;
-            int max = PM.Max;
-
-            try
-            {
-
-                // Test null value retrieval
-                await QueuedTask.Run(() =>
-                {
-                    // Use the Planning Units Feature Class
-                    var tryget = PRZH.GetTable_Project("test");
-
-                    // Build query filter
-                    QueryFilter queryFilter = new QueryFilter()
-                    {
-                        WhereClause = $"id between 1 and 2"
-                    };
-
-                    using (Table table = tryget.table)
-                    using (RowCursor rowCursor = table.Search(queryFilter, false))
-                    {
-                        while (rowCursor.MoveNext())
-                        {
-                            using (Row row = rowCursor.Current)
-                            {
-                                //double d = (row["col_double"] == null) ? -99999 : Convert.ToDouble(row["col_double"]);
-                                //ProMsgBox.Show($"{d}");
-
-                                double e = (double?)row["col_double"] ?? -9999.999;
-                                double u = (float?)row["col_single"] ?? -222.222;
-                                int i = (Int16?)row["col_short"] ?? -9999;
-                                int j = (int?)row["col_long"] ?? -7777;
-                                string p = (string)row["col_text"] ?? "s-999";
-
-                                ProMsgBox.Show($"Double: {e}\nSingle: {u}\nShort: {i}\nLong: {j}\nString: {p}");
-
-                                //if (row["col_double"] == null)
-                                //{
-                                //    ProMsgBox.Show("Nullorama");
-                                //}
-                                //else
-                                //{
-                                //    double v = Convert.ToDouble(row["col_double"]);
-                                //    ProMsgBox.Show($"{v}");
-                                //}
-
-                                //string p = (string)row["col_text"] ?? "testtttttt";
-
-                                //ProMsgBox.Show(p);
-                            }
-                        }
-                    }
-
-                });
-
-            }
-            catch (Exception ex)
-            {
-                ProMsgBox.Show(ex.Message);
-            }
         }
 
         #endregion

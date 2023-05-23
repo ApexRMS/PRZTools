@@ -626,8 +626,8 @@ namespace NCC.PRZTools
                 Dictionary<long, int> study_area_cells = outcome.dict;
 
                 // Load tile metadata for study area and national database
-                var tryread_studyarea_tiles = PRZH.ReadBinary(PRZH.GetPath_ProjectTilesMetadataPath());
-                var tryread_natdata_tiles = PRZH.ReadBinary(PRZH.GetPath_NationalDatabaseElementsTileMetadataPath());
+                var tryread_studyarea_tiles = await PRZH.ReadBinary(PRZH.GetPath_ProjectTilesMetadataPath());
+                var tryread_natdata_tiles = await PRZH.ReadBinary(PRZH.GetPath_NationalDatabaseElementsTileMetadataPath());
 
                 if (!tryread_studyarea_tiles.success)
                 {
@@ -681,7 +681,7 @@ namespace NCC.PRZTools
                     foreach (int tile_id in natdata_tiles[element.ElementID])
                     {
                         string tile_filepath = Path.Combine(input_elements_folder, $"{element.ElementTable}-{tile_id}.bin");
-                        var tryread_tile = PRZH.ReadBinary(tile_filepath);
+                        var tryread_tile = await PRZH.ReadBinary(tile_filepath);
 
                         if (!tryread_tile.success)
                         {
@@ -695,7 +695,7 @@ namespace NCC.PRZTools
                         if (intersecting_cells.Count() == 0) continue;
 
                         // Write to project
-                        var trywrite = PRZH.WriteBinary(intersecting_cells, Path.Combine(output_elements_folder, $"{element.ElementTable}-{tile_id}.bin"));
+                        var trywrite = await PRZH.WriteBinary(intersecting_cells, Path.Combine(output_elements_folder, $"{element.ElementTable}-{tile_id}.bin"));
 
                         if (!trywrite.success)
                         {
@@ -733,7 +733,7 @@ namespace NCC.PRZTools
                 }
 
                 // Save list of intersecting elements and tiles to dictionary
-                var trywrite_tiles = PRZH.WriteBinary(element_tiles_present, PRZH.GetPath_ProjectNationalElementTilesMetadataPath());
+                var trywrite_tiles = await PRZH.WriteBinary(element_tiles_present, PRZH.GetPath_ProjectNationalElementTilesMetadataPath());
                 if (!trywrite_tiles.success)
                 {
                     throw new Exception(trywrite_tiles.message);

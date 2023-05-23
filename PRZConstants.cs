@@ -331,8 +331,14 @@
         public const string c_TABLE_NATPRJ_THEMES = "themes_national";
         public const string c_TABLE_NATPRJ_PREFIX_ELEMENT = "n";
 
-        // REGIONAL DB TABLES
+        // SOURCE REGIONAL TABLES
+        public const string c_TABLE_REGSRC_ELEMENTS = "reg_element";
+        public const string c_TABLE_REGSRC_THEMES = "reg_theme";
+        public const string c_TABLE_REGSRC_PREFIX_ELEMENT = "r";
+
+        // PROJECT GDB REGIONAL TABLES
         public const string c_TABLE_REGPRJ_ELEMENTS = "elements_regional";
+        public const string c_TABLE_REGPRJ_THEMES = "themes_regional";
         public const string c_TABLE_REGPRJ_PREFIX_ELEMENT = "r";
 
         #endregion

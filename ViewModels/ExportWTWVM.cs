@@ -219,7 +219,7 @@ namespace NCC.PRZTools
         {
             bool edits_are_disabled = !Project.Current.IsEditingEnabled;
             int val = 0;
-            int max = 19;
+            int max = 15;
 
             try
             {
@@ -292,10 +292,11 @@ namespace NCC.PRZTools
                 #region VALIDATE NATIONAL AND REGIONAL ELEMENT DATA
 
                 // Check for national element tables
-                var tryread_national_element_tiles = PRZH.ReadBinary(PRZH.GetPath_ProjectNationalElementTilesMetadataPath());
+                var tryread_national_element_tiles = await PRZH.ReadBinary(PRZH.GetPath_ProjectNationalElementTilesMetadataPath());
+                var tryread_regional_element_tiles = await PRZH.ReadBinary(PRZH.GetPath_ProjectRegionalElementTilesMetadataPath());
 
                 int nattables_present = tryread_national_element_tiles.success ? ((Dictionary<string, HashSet<int>>)tryread_national_element_tiles.obj).Count : 0;
-                int regtables_present = 0; //TODO: Decide where to store reg element tables, update assignment accordingly
+                int regtables_present = tryread_regional_element_tiles.success ? ((Dictionary<string, HashSet<int>>)tryread_regional_element_tiles.obj).Count : 0;
 
                 if (nattables_present == 0 & regtables_present == 0)
                 {
@@ -446,10 +447,6 @@ namespace NCC.PRZTools
                         ProMsgBox.Show($"Error retrieving national themes.\n{theme_outcome.message}");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {theme_outcome.themes.Count} national themes."), true, ++val);
-                    }
                     nat_themes = theme_outcome.themes;
 
                     // Get the goals
@@ -459,10 +456,6 @@ namespace NCC.PRZTools
                         PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving national {ElementType.Goal} elements.\n{goal_outcome.message}", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error retrieving national {ElementType.Goal} elements.\n{goal_outcome.message}");
                         return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {goal_outcome.elements.Count} national {ElementType.Goal} elements."), true, ++val);
                     }
                     nat_goals = goal_outcome.elements;
 
@@ -474,10 +467,6 @@ namespace NCC.PRZTools
                         ProMsgBox.Show($"Error retrieving national {ElementType.Weight} elements.\n{weight_outcome.message}");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {weight_outcome.elements.Count} national {ElementType.Weight} elements."), true, ++val);
-                    }
                     nat_weights = weight_outcome.elements;
 
                     // Get the includes
@@ -487,10 +476,6 @@ namespace NCC.PRZTools
                         PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving national {ElementType.Include} elements.\n{include_outcome.message}", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error retrieving national {ElementType.Include} elements.\n{include_outcome.message}");
                         return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {include_outcome.elements.Count} national {ElementType.Include} elements."), true, ++val);
                     }
                     nat_includes = include_outcome.elements;
 
@@ -502,10 +487,6 @@ namespace NCC.PRZTools
                         ProMsgBox.Show($"Error retrieving national {ElementType.Exclude} elements.\n{exclude_outcome.message}");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {exclude_outcome.elements.Count} national {ElementType.Exclude} elements."), true, ++val);
-                    }
                     nat_excludes = exclude_outcome.elements;
                 }
 
@@ -516,7 +497,7 @@ namespace NCC.PRZTools
                 #region GET REGIONAL TABLE CONTENTS
 
                 // Prepare the empty lists (there may be no regional data)
-                Dictionary<int, string> DICT_RegThemes = new Dictionary<int, string>();
+                List<RegTheme> reg_themes = new List<RegTheme>();
                 List<RegElement> reg_goals = new List<RegElement>();
                 List<RegElement> reg_weights = new List<RegElement>();
                 List<RegElement> reg_includes = new List<RegElement>();
@@ -525,19 +506,15 @@ namespace NCC.PRZTools
                 // If there's at least a single table, populate the lists
                 if (regtables_present > 0)
                 {
-                    // Get the Regional Themes
-                    var tryget_regThemes = await PRZH.GetRegionalThemesDomainKVPs();
-                    if (!tryget_regThemes.success)
+                    // Get the National Themes
+                    var theme_outcome = await PRZH.GetRegionalThemes(ElementPresence.Present);
+                    if (!theme_outcome.success)
                     {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving regional themes.\n{tryget_regThemes.message}", LogMessageType.ERROR), true, ++val);
-                        ProMsgBox.Show($"Error retrieving regional themes.\n{tryget_regThemes.message}");
+                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving regional themes.\n{theme_outcome.message}", LogMessageType.ERROR), true, ++val);
+                        ProMsgBox.Show($"Error retrieving regional themes.\n{theme_outcome.message}");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved regional themes."), true, ++val);
-                    }
-                    DICT_RegThemes = tryget_regThemes.dict;
+                    reg_themes = theme_outcome.themes;
 
                     // Get the goals
                     var tryget_reg_goals = await PRZH.GetRegionalElements(ElementType.Goal, ElementStatus.Active, ElementPresence.Present);
@@ -546,10 +523,6 @@ namespace NCC.PRZTools
                         PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving regional {ElementType.Goal} elements.\n{tryget_reg_goals.message}", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error retrieving regional {ElementType.Goal} elements.\n{tryget_reg_goals.message}");
                         return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {tryget_reg_goals.elements.Count} regional {ElementType.Goal} elements."), true, ++val);
                     }
                     reg_goals = tryget_reg_goals.elements;
 
@@ -561,10 +534,6 @@ namespace NCC.PRZTools
                         ProMsgBox.Show($"Error retrieving national {ElementType.Weight} elements.\n{tryget_reg_weights.message}");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {tryget_reg_weights.elements.Count} regional {ElementType.Weight} elements."), true, ++val);
-                    }
                     reg_weights = tryget_reg_weights.elements;
 
                     // Get the includes
@@ -575,10 +544,6 @@ namespace NCC.PRZTools
                         ProMsgBox.Show($"Error retrieving regional {ElementType.Include} elements.\n{tryget_reg_includes.message}");
                         return;
                     }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {tryget_reg_includes.elements.Count} regional {ElementType.Include} elements."), true, ++val);
-                    }
                     reg_includes = tryget_reg_includes.elements;
 
                     // Get the excludes
@@ -588,10 +553,6 @@ namespace NCC.PRZTools
                         PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error retrieving regional {ElementType.Exclude} elements.\n{tryget_reg_excludes.message}", LogMessageType.ERROR), true, ++val);
                         ProMsgBox.Show($"Error retrieving regional {ElementType.Exclude} elements.\n{tryget_reg_excludes.message}");
                         return;
-                    }
-                    else
-                    {
-                        PRZH.UpdateProgress(PM, PRZH.WriteLog($"Retrieved {tryget_reg_excludes.elements.Count} regional {ElementType.Exclude} elements."), true, ++val);
                     }
                     reg_excludes = tryget_reg_excludes.elements;
                 }
@@ -605,6 +566,8 @@ namespace NCC.PRZTools
                 #region THEMES & GOALS
 
                 SortedList<int, string> SLIST_Themes = new SortedList<int, string>();
+                // TODO: Used to check for misalignment of theme ids in national / regional database. Consider recoding regional theme ids to matching national theme ids.
+                HashSet<int> processed_reg_themes = new HashSet<int>(); 
 
                 // Add the national themes
                 for (int i = 0; i < nat_themes.Count; i++)
@@ -621,15 +584,33 @@ namespace NCC.PRZTools
                 }
 
                 // Add the regional themes
-                foreach (var regTheme in DICT_RegThemes)
+                // TODO: Is there a collision between nat and reg theme ids?
+                for (int i = 0; i < reg_themes.Count; i++)
                 {
-                    int theme_id = regTheme.Key;
-                    string theme_name = regTheme.Value;
+                    RegTheme regTheme = reg_themes[i];
 
+                    int theme_id = regTheme.ThemeID;
+                    string theme_name = regTheme.ThemeName;
+
+                    // Add theme if ID is new
                     if (!SLIST_Themes.ContainsKey(theme_id))
                     {
                         SLIST_Themes.Add(theme_id, theme_name);
                     }
+                    
+                    // If the theme ID has already been added, double check it is the correct name
+                    else
+                    {
+                        if (theme_name != SLIST_Themes[theme_id])
+                        {
+                            PRZH.UpdateProgress(PM, PRZH.WriteLog($"Error: Regional and National databases use the same Theme ID to reference different themes. Please update one or both databases.", LogMessageType.ERROR), true, ++val);
+                            ProMsgBox.Show($"Error consolidating themes from Regional and National databases!" + Environment.NewLine + Environment.NewLine +
+                                $"Regional and National databases use the same Theme ID ({theme_id}) to reference different themes (National: {SLIST_Themes[theme_id]} / Regional: {theme_name})." + Environment.NewLine + Environment.NewLine + 
+                                "Please update one or both databases.");
+                            return;
+                        }
+                    }
+
                 }
 
                 // Create the yamlTheme list
@@ -703,7 +684,7 @@ namespace NCC.PRZTools
                         List<Color> colors = new List<Color>()
                         {
                             Color.Transparent,
-                            Color.MediumPurple
+                            Color.DarkSeaGreen
                         };
 
                         yamlLegend.SetContinuousColors(colors);
@@ -711,7 +692,7 @@ namespace NCC.PRZTools
                         // Build the Yaml Variable
                         YamlVariable yamlVariable = new YamlVariable();
                         yamlVariable.index = goal.ElementTable;
-                        yamlVariable.units = "reg";// goal.ElementUnit;
+                        yamlVariable.units = goal.ElementUnit;
                         yamlVariable.provenance = WTWProvenanceType.regional.ToString();
                         yamlVariable.legend = yamlLegend;
 
@@ -800,7 +781,7 @@ namespace NCC.PRZTools
                     // Build the Yaml Variable
                     YamlVariable yamlVariable = new YamlVariable();
                     yamlVariable.index = weight.ElementTable;
-                    yamlVariable.units = "reg";
+                    yamlVariable.units = weight.ElementUnit;
                     yamlVariable.provenance = WTWProvenanceType.regional.ToString();
                     yamlVariable.legend = yamlLegend;
 
@@ -1006,7 +987,7 @@ namespace NCC.PRZTools
                 }
                 else
                 {
-                    ProMsgBox.Show("No themes found for your study area! At least one theme is required to use the Where to Work application. Please check your study area and data sources." + Environment.NewLine + Environment.NewLine + message);
+                    ProMsgBox.Show("No elements found to export! Please check your study area and data sources." + Environment.NewLine + Environment.NewLine + message);
                 }
             }
             catch (OperationCanceledException)
@@ -1641,14 +1622,16 @@ namespace NCC.PRZTools
                 #region Initialization
 
                 // Identify extracted elements and tiles
-                var tryread_national_element_tiles = PRZH.ReadBinary(PRZH.GetPath_ProjectNationalElementTilesMetadataPath());
-                if (!tryread_national_element_tiles.success)
+                var tryread_national_element_tiles = await PRZH.ReadBinary(PRZH.GetPath_ProjectNationalElementTilesMetadataPath());
+                var tryread_regional_element_tiles = await PRZH.ReadBinary(PRZH.GetPath_ProjectRegionalElementTilesMetadataPath());
+
+                if (!tryread_national_element_tiles.success & !tryread_regional_element_tiles.success)
                 {
-                    return (false, $"Could not read tile metadata for national data, please try re-extracting national data. Message: {tryread_national_element_tiles.message}");
+                    return (false, $"Could not read tile metadata for either national or regional data, please try re-extracting data.");
                 }
 
-                Dictionary<string, HashSet<int>> national_element_tiles = (Dictionary<string, HashSet<int>>)tryread_national_element_tiles.obj;
-                Dictionary<string, HashSet<int>> regional_element_tiles = new Dictionary<string, HashSet<int>>(); // TODO: Update to load regional data also
+                Dictionary<string, HashSet<int>> national_element_tiles = tryread_national_element_tiles.success ? (Dictionary<string, HashSet<int>>)tryread_national_element_tiles.obj : new Dictionary<string, HashSet<int>>();
+                Dictionary<string, HashSet<int>> regional_element_tiles = tryread_regional_element_tiles.success ? (Dictionary<string, HashSet<int>>)tryread_regional_element_tiles.obj : new Dictionary<string, HashSet<int>>();
 
                 Dictionary<string, HashSet<int>> element_tiles = national_element_tiles.Concat(regional_element_tiles).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
@@ -1656,13 +1639,10 @@ namespace NCC.PRZTools
                 Dictionary<string, string> element_location = new Dictionary<string, string>(element_tiles.Count);
 
                 string natelementfolder = PRZH.GetPath_ProjectNationalElementsSubfolder();
-                string regelementfolder = ""; // TODO: implement PRZH.GetPath_ProjectRegionalElementsSubfolder();
+                string regelementfolder = PRZH.GetPath_ProjectRegionalElementsSubfolder();
 
                 foreach (string natelement in national_element_tiles.Keys) element_location.Add(natelement, natelementfolder);
                 foreach (string regelement in regional_element_tiles.Keys) element_location.Add(regelement, regelementfolder);
-
-                // Initialize dictionary
-                //Dictionary<string, Dictionary<long, double>> attributes = new Dictionary<string, Dictionary<long, double>>(element_paths.Count());
 
                 #endregion
 
@@ -1716,7 +1696,7 @@ namespace NCC.PRZTools
 
                             // Read in element tile
                             string tile_path = Path.Combine(element_location[element_tile.Key], $"{element_tile.Key}-{tile_cells.Key}.bin");
-                            var tryread = PRZH.ReadBinary(tile_path);
+                            var tryread = await PRZH.ReadBinary(tile_path);
                             if (!tryread.success)
                             {
                                 throw new Exception($"Could not read element binary file. Message: {tryread.message}");

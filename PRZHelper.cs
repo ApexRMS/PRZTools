@@ -261,6 +261,18 @@ namespace NCC.PRZTools
                 return null;
             }
         }
+        public static string GetPath_RegGDB()
+        {
+            try
+            {
+                return Properties.Settings.Default.REGDB_DBPATH;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
 
         // National GDB
         public static string GetPath_NatGDBFolder()
@@ -425,6 +437,56 @@ namespace NCC.PRZTools
             }
         }
 
+        // Regional Database Elements Folder
+        public static string GetPath_RegionalDatabaseElementsSubfolder()
+        {
+            try
+            {
+                string regelementswpath = Path.Combine(Properties.Settings.Default.REGDB_DBPATH, PRZC.c_DIR_PRZ_ELEMENTS);
+
+                return regelementswpath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
+        // Regional Database Tile Metadata
+        public static string GetPath_RegionalDatabaseElementsTileMetadataPath()
+        {
+            try
+            {
+                string regelementswpath = GetPath_RegionalDatabaseElementsSubfolder();
+                string regelementstilepath = Path.Combine(regelementswpath, PRZC.c_FILE_METADATA_TILES);
+
+                return regelementstilepath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
+        // Project Regional Elements Subfolder
+        public static string GetPath_ProjectRegionalElementsSubfolder()
+        {
+            try
+            {
+                string wspath = GetPath_ProjectFolder();
+                string regelementswpath = Path.Combine(wspath, PRZC.c_DIR_PRZ_ELEMENTS, PRZC.c_DIR_REGDATA_ELEMENTS);
+
+                return regelementswpath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
         // Project Metadata Folder
         public static string GetPath_ProjectMetadataFolder()
         {
@@ -464,6 +526,22 @@ namespace NCC.PRZTools
             {
                 string projectnatelempath = GetPath_ProjectNationalElementsSubfolder();
                 string tilespath = Path.Combine(projectnatelempath, PRZC.c_FILE_METADATA_TILES);
+
+                return tilespath;
+            }
+            catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return null;
+            }
+        }
+
+        public static string GetPath_ProjectRegionalElementTilesMetadataPath()
+        {
+            try
+            {
+                string projectregelempath = GetPath_ProjectRegionalElementsSubfolder();
+                string tilespath = Path.Combine(projectregelempath, PRZC.c_FILE_METADATA_TILES);
 
                 return tilespath;
             }
@@ -824,6 +902,39 @@ namespace NCC.PRZTools
                 if (!Properties.Settings.Default.NATDB_DBVALID)
                 {
                     return (false, GeoDBType.Unknown, "National geodatabase exists but is invalid.");
+                }
+                else
+                {
+                    return tryex;
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, GeoDBType.Unknown, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Establish the existence of the national geodatabase (file or enterprise).
+        /// Geodatabase must exist and be valid (have the required tables).  Silent errors.
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<(bool exists, GeoDBType gdbType, string message)> GDBExists_Reg()
+        {
+            try
+            {
+                var tryex = await GDBExists(GetPath_RegGDB());
+
+                if (!tryex.exists)
+                {
+                    return tryex;
+                }
+
+                // Ensure that national geodatabase is valid
+                // TODO: This is not ideal.  Actual test should be done here rather than relying on a flag set somewhere else.
+                if (!Properties.Settings.Default.REGDB_DBVALID)
+                {
+                    return (false, GeoDBType.Unknown, "Regional geodatabase exists but is invalid.");
                 }
                 else
                 {
@@ -1286,6 +1397,116 @@ namespace NCC.PRZTools
             }
         }
 
+        /// <summary>
+        /// Establish the existence of an element dictionary by name from the national geodatabase.  Silent errors.
+        /// </summary>
+        /// <param name="table_name"></param>
+        /// <returns></returns>
+        public static async Task<(bool exists, string message)> ElemDictExists_Nat(string elem_id)
+        {
+            try
+            {
+                string elemfolder_path = GetPath_NationalDatabaseElementsSubfolder();
+                string[] files = Directory.GetFiles(elemfolder_path, $"{elem_id}-*");
+
+                // Check if any valid dictionary tiles exist
+                if (files.Length == 0) return (false, "element dictionary not found.");
+
+                // Check if readable
+                var tryread = await ReadBinary(files[0]);
+                if (!tryread.success) return (false, "could not read dictionary.");
+
+                // Check if parseable
+                if (tryread.obj as Dictionary<long, double> == null) return (false, "could not parse dictionary file.");
+
+                return (true, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        #endregion
+
+        #region FC/TABLE/RASTER IN REGIONAL GDB
+
+        /// <summary>
+        /// Establish the existence of a table by name from the regional geodatabase.  Silent errors.
+        /// </summary>
+        /// <param name="table_name"></param>
+        /// <returns></returns>
+        public static async Task<(bool exists, string message)> TableExists_Reg(string table_name)
+        {
+            try
+            {
+                // Run this code on the worker thread
+                return await QueuedTask.Run(() =>
+                {
+                    // Get geodatabase
+                    var tryget_gdb = GetGDB_Reg();
+
+                    if (!tryget_gdb.success)
+                    {
+                        return (false, tryget_gdb.message);
+                    }
+
+                    using (Geodatabase geodatabase = tryget_gdb.geodatabase)
+                    {
+                        if (geodatabase == null)
+                        {
+                            return (false, "unable to access the geodatabase.");
+                        }
+
+                        // fully qualified table name as required
+                        SQLSyntax syntax = geodatabase.GetSQLSyntax();
+
+                        string db = Properties.Settings.Default.REGDB_DBNAME;
+                        string schema = Properties.Settings.Default.REGDB_SCHEMANAME;
+
+                        string qualified_table_name = syntax.QualifyTableName(db, schema, table_name);
+
+                        return TableExists(geodatabase, qualified_table_name);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Establish the existence of an element dictionary by name from the regional geodatabase.  Silent errors.
+        /// </summary>
+        /// <param name="table_name"></param>
+        /// <returns></returns>
+        public static async Task<(bool exists, string message)> ElemDictExists_Reg(string elem_id)
+        {
+            try
+            {
+                string elemfolder_path = GetPath_RegionalDatabaseElementsSubfolder();
+                string[] files = Directory.GetFiles(elemfolder_path, $"{elem_id}-*");
+
+                // Check if any valid dictionary tiles exist
+                if (files.Length == 0) return (false, "element dictionary not found.");
+
+                // Check if readable
+                var tryread = await ReadBinary(files[0]);
+                if (!tryread.success) return (false, "could not read dictionary.");
+
+                // Check if parseable
+                if (tryread.obj as Dictionary<long, double> == null) return (false, "could not parse dictionary file.");
+
+                return (true, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+
         #endregion
 
         #region MISCELLANEOUS
@@ -1688,6 +1909,48 @@ namespace NCC.PRZTools
 
                 // Ensure geodatabase is valid
                 if (!Properties.Settings.Default.NATDB_DBVALID)
+                {
+                    return (false, null, GeoDBType.Unknown, "Geodatabase exists but is invalid.");
+                }
+                else
+                {
+                    return tryget;
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, null, GeoDBType.Unknown, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Retrieve the regional geodatabase (file or enterprise).  Geodatabase must be
+        /// valid (e.g. have the required tables).  Must be run on MCT.  Silent errors.
+        /// </summary>
+        /// <returns></returns>
+        public static (bool success, Geodatabase geodatabase, GeoDBType gdbType, string message) GetGDB_Reg()
+        {
+            try
+            {
+                // Ensure this is called on worker thread
+                if (!QueuedTask.OnWorker)
+                {
+                    throw new ArcGIS.Core.CalledOnWrongThreadException();
+                }
+
+                // Get the Reg Geodatabase Path
+                string gdbpath = GetPath_RegGDB();
+
+                // Get the Geodatabase
+                var tryget = GetGDB(gdbpath);
+
+                if (!tryget.success)
+                {
+                    return tryget;
+                }
+
+                // Ensure geodatabase is valid
+                if (!Properties.Settings.Default.REGDB_DBVALID)
                 {
                     return (false, null, GeoDBType.Unknown, "Geodatabase exists but is invalid.");
                 }
@@ -2259,6 +2522,61 @@ namespace NCC.PRZTools
 
         #endregion
 
+        #region REG GDB OBJECTS
+
+        /// <summary>
+        /// Retrieve a table by name from the regional geodatabase (file or enterprise).
+        /// Must be run on MCT.  Silent errors.
+        /// </summary>
+        /// <param name="table_name"></param>
+        /// <returns></returns>
+        public static (bool success, Table table, string message) GetTable_Reg(string table_name)
+        {
+            try
+            {
+                // Ensure this is called on worker thread
+                if (!QueuedTask.OnWorker)
+                {
+                    throw new ArcGIS.Core.CalledOnWrongThreadException();
+                }
+
+                // Retrieve geodatabase
+                var tryget = GetGDB_Reg();
+                if (!tryget.success)
+                {
+                    return (false, null, tryget.message);
+                }
+
+                using (Geodatabase geodatabase = tryget.geodatabase)
+                {
+                    // fully qualified table name as required
+                    SQLSyntax syntax = geodatabase.GetSQLSyntax();
+
+                    string db = Properties.Settings.Default.REGDB_DBNAME;
+                    string schema = Properties.Settings.Default.REGDB_SCHEMANAME;
+
+                    string qualified_table_name = syntax.QualifyTableName(db, schema, table_name);
+
+                    // ensure table exists
+                    if (!TableExists(geodatabase, qualified_table_name).exists)
+                    {
+                        return (false, null, "Table not found in geodatabase");
+                    }
+
+                    // get the table
+                    Table table = geodatabase.OpenDataset<Table>(qualified_table_name);
+
+                    return (true, table, "success");
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        #endregion
+
         #region FEATURE DATASET CONTENTS
 
         /// <summary>
@@ -2408,21 +2726,93 @@ namespace NCC.PRZTools
             }
         }
 
-        public static async Task<(bool success, string message)> SetElementTableNamingFormat(int element_id)
+        public static async Task<(bool success, string qualified_name, string message)> GetRegDBQualifiedName(string name)
         {
             try
             {
-                if ((await TableExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D5"))).exists)
+                // Ensure the regional database is valid
+                bool valid = Properties.Settings.Default.REGDB_DBVALID;
+
+                if (!valid)
+                {
+                    return (false, "", "invalid regional database");
+                }
+
+                // Construct the qualified name
+                string db = Properties.Settings.Default.REGDB_DBNAME;
+                string schema = Properties.Settings.Default.REGDB_SCHEMANAME;
+
+                string qualified_name = "";
+
+                await QueuedTask.Run(() =>
+                {
+                    // Get the reg gdb
+                    var tryget = GetGDB_Reg();
+                    if (!tryget.success)
+                    {
+                        throw new Exception("Error retrieving valid regional geodatabase.");
+                    }
+
+                    using (Geodatabase geodatabase = tryget.geodatabase)
+                    {
+                        SQLSyntax syntax = geodatabase.GetSQLSyntax();
+                        qualified_name = syntax.QualifyTableName(db, schema, name);
+                    }
+                });
+
+                return (true, qualified_name, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, "", ex.Message);
+            }
+        }
+
+        public static async Task<(bool success, string message)> SetElementTableNamingFormat_National(int element_id)
+        {
+            try
+            {
+                if ((await ElemDictExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D5"))).exists | (await TableExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D5"))).exists)
                 {
                     CurrentGeodatabaseElementTableNameFormat = "D5";
                 }
-                else if ((await TableExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D6"))).exists)
+                else if ((await ElemDictExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D6"))).exists | (await TableExists_Nat(PRZC.c_TABLE_NATPRJ_PREFIX_ELEMENT + element_id.ToString("D6"))).exists)
                 {
                     CurrentGeodatabaseElementTableNameFormat = "D6";
+                }
+                else
+                {
+                    return (false, "Could not determine national element table format.");
                 }
 
                 return (true, null);
             } catch (Exception ex)
+            {
+                ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
+                return (false, ex.Message);
+            }
+        }
+
+        public static async Task<(bool success, string message)> SetElementTableNamingFormat_Regional(int element_id)
+        {
+            try
+            {
+                if ((await ElemDictExists_Reg(PRZC.c_TABLE_REGPRJ_PREFIX_ELEMENT + element_id.ToString("D5"))).exists | (await TableExists_Reg(PRZC.c_TABLE_REGPRJ_PREFIX_ELEMENT + element_id.ToString("D5"))).exists)
+                {
+                    CurrentGeodatabaseElementTableNameFormat = "D5";
+                }
+                else if ((await ElemDictExists_Reg(PRZC.c_TABLE_REGPRJ_PREFIX_ELEMENT + element_id.ToString("D6"))).exists | (await TableExists_Reg(PRZC.c_TABLE_REGPRJ_PREFIX_ELEMENT + element_id.ToString("D6"))).exists)
+                {
+                    CurrentGeodatabaseElementTableNameFormat = "D6";
+                }
+                else
+                {
+                    return (false, "Could not determine regional element table format.");
+                }
+
+                return (true, null);
+            }
+            catch (Exception ex)
             {
                 ProMsgBox.Show(ex.Message + Environment.NewLine + "Error in method: " + MethodBase.GetCurrentMethod().Name);
                 return (false, ex.Message);
@@ -2713,7 +3103,7 @@ namespace NCC.PRZTools
 
                                 if (!tableFormatChecked)
                                 {
-                                    var try_setup_table_format = await SetElementTableNamingFormat(id);
+                                    var try_setup_table_format = await SetElementTableNamingFormat_National(id);
 
                                     if (!try_setup_table_format.success)
                                     {
@@ -2842,7 +3232,7 @@ namespace NCC.PRZTools
 
                                 if (!tableFormatChecked)
                                 {
-                                    var try_setup_table_format = await SetElementTableNamingFormat(id);
+                                    var try_setup_table_format = await SetElementTableNamingFormat_National(id);
 
                                     if (!try_setup_table_format.success)
                                     {
@@ -3197,6 +3587,511 @@ namespace NCC.PRZTools
             }
         }
 
+
+        /// <summary>
+        /// Retrieve a list of RegTheme objects from the project geodatabase.  Silent errors.
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<(bool success, List<RegTheme> themes, string message)> GetRegionalThemes()
+        {
+            try
+            {
+                // Check for Project GDB
+                var try_gdbexists = await GDBExists_Project();
+                if (!try_gdbexists.exists)
+                {
+                    return (false, null, try_gdbexists.message);
+                }
+
+                // Check for existence of Theme table
+                if (!(await TableExists_Project(PRZC.c_TABLE_REGPRJ_THEMES)).exists)
+                {
+                    return (false, null, $"{PRZC.c_TABLE_REGPRJ_THEMES} table not found in project geodatabase");
+                }
+
+                // Create the list
+                List<RegTheme> themes = new List<RegTheme>();
+
+                // Populate the list
+                (bool success, string message) outcome = await QueuedTask.Run(() =>
+                {
+                    var tryget = GetTable_Project(PRZC.c_TABLE_REGPRJ_THEMES);
+                    if (!tryget.success)
+                    {
+                        throw new Exception("Error retrieving table.");
+                    }
+
+                    using (Table table = tryget.table)
+                    using (RowCursor rowCursor = table.Search())
+                    {
+                        while (rowCursor.MoveNext())
+                        {
+                            using (Row row = rowCursor.Current)
+                            {
+                                int id = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGTHEME_THEME_ID]);
+                                string name = (string)row[PRZC.c_FLD_TAB_REGTHEME_NAME];
+                                string code = (string)row[PRZC.c_FLD_TAB_REGTHEME_CODE];
+                                int theme_presence = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGTHEME_PRESENCE]);
+
+                                if (id > 0 && !string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(code))
+                                {
+                                    RegTheme theme = new RegTheme()
+                                    {
+                                        ThemeID = id,
+                                        ThemeName = name,
+                                        ThemeCode = code,
+                                        ThemePresence = theme_presence
+                                    };
+
+                                    themes.Add(theme);
+                                }
+                            }
+                        }
+                    }
+
+                    return (true, "success");
+                });
+
+                if (outcome.success)
+                {
+                    // Sort the list by theme id
+                    themes.Sort((a, b) => a.ThemeID.CompareTo(b.ThemeID));
+
+                    return (true, themes, "success");
+                }
+                else
+                {
+                    return (false, null, outcome.message);
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Retrieve a list of RegTheme objects from the project geodatabase.  Silent errors.
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<(bool success, List<RegTheme> themes, string message)> GetRegionalThemes_Direct()
+        {
+            try
+            {
+                // Check for Project GDB
+                var try_gdbexists = await GDBExists_Reg();
+                if (!try_gdbexists.exists)
+                {
+                    return (false, null, try_gdbexists.message);
+                }
+
+                // Check for existence of Theme table
+                if (!(await TableExists_Reg(PRZC.c_TABLE_REGSRC_THEMES)).exists)
+                {
+                    return (false, null, $"{PRZC.c_TABLE_REGSRC_THEMES} table not found in project geodatabase");
+                }
+
+                // Create the list
+                List<RegTheme> themes = new List<RegTheme>();
+
+                // Populate the list
+                (bool success, string message) outcome = await QueuedTask.Run(() =>
+                {
+                    var tryget = GetTable_Reg(PRZC.c_TABLE_REGSRC_THEMES);
+                    if (!tryget.success)
+                    {
+                        throw new Exception("Error retrieving table.");
+                    }
+
+                    using (Table table = tryget.table)
+                    using (RowCursor rowCursor = table.Search())
+                    {
+                        while (rowCursor.MoveNext())
+                        {
+                            using (Row row = rowCursor.Current)
+                            {
+                                int id = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGTHEME_THEME_ID]);
+                                string name = (string)row[PRZC.c_FLD_TAB_REGTHEME_NAME];
+                                string code = (string)row[PRZC.c_FLD_TAB_REGTHEME_CODE];
+                                int theme_presence = 0;
+
+                                if (id > 0 && !string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(code))
+                                {
+                                    RegTheme theme = new RegTheme()
+                                    {
+                                        ThemeID = id,
+                                        ThemeName = name,
+                                        ThemeCode = code,
+                                        ThemePresence = theme_presence
+                                    };
+
+                                    themes.Add(theme);
+                                }
+                            }
+                        }
+                    }
+
+                    return (true, "success");
+                });
+
+                if (outcome.success)
+                {
+                    // Sort the list by theme id
+                    themes.Sort((a, b) => a.ThemeID.CompareTo(b.ThemeID));
+
+                    return (true, themes, "success");
+                }
+                else
+                {
+                    return (false, null, outcome.message);
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Retrieve a list of RegTheme objects from the project geodatabase, optionally filtered
+        /// by the presence indicator.  Silent errors.
+        /// </summary>
+        /// <param name="presence"></param>
+        /// <returns></returns>
+        public static async Task<(bool success, List<RegTheme> themes, string message)> GetRegionalThemes(ElementPresence? presence)
+        {
+            try
+            {
+                // Get the full Theme list
+                var tryget = await GetRegionalThemes();
+
+                if (!tryget.success)
+                {
+                    return (false, null, tryget.message);
+                }
+
+                List<RegTheme> themes = tryget.themes;
+
+                // Filter the list based on filter criteria:
+
+                // By Presence
+                IEnumerable<RegTheme> v = (presence != null) ? themes.Where(t => t.ThemePresence == ((int)presence)) : themes;
+
+                // Sort by Theme ID
+                IOrderedEnumerable<RegTheme> u = v.OrderBy(t => t.ThemeID);
+
+                return (true, u.ToList(), "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Retrieve a list of RegElement objects from the project geodatabase.  Silent errors.
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<(bool success, List<RegElement> elements, string message)> GetRegionalElements()
+        {
+            try
+            {
+                // Check for Project GDB
+                var try_gdbexists = await GDBExists_Project();
+                if (!try_gdbexists.exists)
+                {
+                    return (false, null, try_gdbexists.message);
+                }
+
+                // Check for existence of Element table
+                if (!(await TableExists_Project(PRZC.c_TABLE_REGPRJ_ELEMENTS)).exists)
+                {
+                    return (false, null, $"{PRZC.c_TABLE_REGPRJ_ELEMENTS} table not found in project geodatabase");
+                }
+
+                // Create list
+                List<RegElement> elements = new List<RegElement>();
+                bool tableFormatChecked = false;
+
+                // Populate the list
+                await QueuedTask.Run(async () =>
+                {
+                    var tryget = GetTable_Project(PRZC.c_TABLE_REGPRJ_ELEMENTS);
+                    if (!tryget.success)
+                    {
+                        throw new Exception("Error retrieving table.");
+                    }
+
+                    using (Table table = tryget.table)
+                    using (RowCursor rowCursor = table.Search())
+                    {
+                        while (rowCursor.MoveNext())
+                        {
+                            using (Row row = rowCursor.Current)
+                            {
+                                int id = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGELEMENT_ELEMENT_ID]);
+                                string name = (string)row[PRZC.c_FLD_TAB_REGELEMENT_NAME] ?? "";
+                                int elem_type = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGELEMENT_TYPE]);
+                                int elem_status = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGELEMENT_STATUS]);
+                                string data_path = (string)row[PRZC.c_FLD_TAB_REGELEMENT_DATAPATH] ?? "";
+                                int theme_id = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGELEMENT_THEME_ID]);
+                                int elem_presence = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGELEMENT_PRESENCE]);
+                                string unit = (string)row[PRZC.c_FLD_TAB_REGELEMENT_UNIT] ?? "";
+
+                                if (!tableFormatChecked)
+                                {
+                                    var try_setup_table_format = await SetElementTableNamingFormat_Regional(id);
+
+                                    if (!try_setup_table_format.success)
+                                    {
+                                        throw new Exception(try_setup_table_format.message);
+                                    }
+
+                                    tableFormatChecked = true;
+                                }
+
+                                if (id > 0 && elem_type > 0 && elem_status > 0 && theme_id > 0 && !string.IsNullOrEmpty(name))
+                                {
+                                    RegElement element = new RegElement()
+                                    {
+                                        ElementID = id,
+                                        ElementName = name,
+                                        ElementType = elem_type,
+                                        ElementStatus = elem_status,
+                                        ElementDataPath = data_path,
+                                        ThemeID = theme_id,
+                                        ElementPresence = elem_presence,
+                                        ElementUnit = unit
+                                    };
+
+                                    elements.Add(element);
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Populate the Theme Information
+                var theme_outcome = await GetRegionalThemes();
+                if (!theme_outcome.success)
+                {
+                    return (false, null, theme_outcome.message);
+                }
+
+                List<RegTheme> themes = theme_outcome.themes;
+
+                foreach (RegElement element in elements)
+                {
+                    int theme_id = element.ThemeID;
+
+                    if (theme_id < 1)
+                    {
+                        element.ThemeName = "INVALID THEME ID";
+                        element.ThemeCode = "---";
+                    }
+                    else
+                    {
+                        RegTheme theme = themes.FirstOrDefault(t => t.ThemeID == theme_id);
+
+                        if (theme != null)
+                        {
+                            element.ThemeName = theme.ThemeName;
+                            element.ThemeCode = theme.ThemeCode;
+                        }
+                        else
+                        {
+                            element.ThemeName = "NO CORRESPONDING THEME";
+                            element.ThemeCode = "???";
+                        }
+                    }
+                }
+
+                // Sort the list
+                elements.Sort((a, b) => a.ElementID.CompareTo(b.ElementID));
+
+                return (true, elements, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Retrieve a list of RegElement objects from the regional geodatabase.  Silent errors.
+        /// </summary>
+        /// <returns></returns>
+        public static async Task<(bool success, List<RegElement> elements, string message)> GetRegionalElements_Direct()
+        {
+            try
+            {
+                // Check for Project GDB
+                var try_gdbexists = await GDBExists_Reg();
+                if (!try_gdbexists.exists)
+                {
+                    return (false, null, try_gdbexists.message);
+                }
+
+                // Check for existence of Element table
+                if (!(await TableExists_Reg(PRZC.c_TABLE_REGSRC_ELEMENTS)).exists)
+                {
+                    return (false, null, $"{PRZC.c_TABLE_REGSRC_ELEMENTS} table not found in national geodatabase");
+                }
+
+                // Create list
+                List<RegElement> elements = new List<RegElement>();
+                bool tableFormatChecked = false;
+
+                // Populate the list
+                await QueuedTask.Run(async () =>
+                {
+                    var tryget = GetTable_Reg(PRZC.c_TABLE_REGSRC_ELEMENTS);
+                    if (!tryget.success)
+                    {
+                        throw new Exception("Error retrieving table.");
+                    }
+
+                    using (Table table = tryget.table)
+                    using (RowCursor rowCursor = table.Search())
+                    {
+                        while (rowCursor.MoveNext())
+                        {
+                            using (Row row = rowCursor.Current)
+                            {
+                                int id = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGELEMENT_ELEMENT_ID]);
+                                string name = (string)row[PRZC.c_FLD_TAB_REGELEMENT_NAME] ?? "";
+                                int elem_type = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGELEMENT_TYPE]);
+                                int elem_status = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGELEMENT_STATUS]);
+                                string data_path = (string)row[PRZC.c_FLD_TAB_REGELEMENT_DATAPATH] ?? "";
+                                int theme_id = Convert.ToInt32(row[PRZC.c_FLD_TAB_REGELEMENT_THEME_ID]);
+                                int elem_presence = 0;
+                                string unit = (string)row[PRZC.c_FLD_TAB_REGELEMENT_UNIT] ?? "";
+
+                                if (!tableFormatChecked)
+                                {
+                                    var try_setup_table_format = await SetElementTableNamingFormat_Regional(id);
+
+                                    if (!try_setup_table_format.success)
+                                    {
+                                        throw new Exception(try_setup_table_format.message);
+                                    }
+
+                                    tableFormatChecked = true;
+                                }
+
+                                if (id > 0 && elem_type > 0 && elem_status > 0 && theme_id > 0 && !string.IsNullOrEmpty(name))
+                                {
+                                    RegElement element = new RegElement()
+                                    {
+                                        ElementID = id,
+                                        ElementName = name,
+                                        ElementType = elem_type,
+                                        ElementStatus = elem_status,
+                                        ElementDataPath = data_path,
+                                        ThemeID = theme_id,
+                                        ElementPresence = elem_presence,
+                                        ElementUnit = unit
+                                    };
+
+                                    elements.Add(element);
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Populate the Theme Information
+                var theme_outcome = await GetRegionalThemes_Direct();
+                if (!theme_outcome.success)
+                {
+                    return (false, null, theme_outcome.message);
+                }
+
+                List<RegTheme> themes = theme_outcome.themes;
+
+                foreach (RegElement element in elements)
+                {
+                    int theme_id = element.ThemeID;
+
+                    if (theme_id < 1)
+                    {
+                        element.ThemeName = "INVALID THEME ID";
+                        element.ThemeCode = "---";
+                    }
+                    else
+                    {
+                        RegTheme theme = themes.FirstOrDefault(t => t.ThemeID == theme_id);
+
+                        if (theme != null)
+                        {
+                            element.ThemeName = theme.ThemeName;
+                            element.ThemeCode = theme.ThemeCode;
+                        }
+                        else
+                        {
+                            element.ThemeName = "NO CORRESPONDING THEME";
+                            element.ThemeCode = "???";
+                        }
+                    }
+                }
+
+                // Sort the list
+                elements.Sort((a, b) => a.ElementID.CompareTo(b.ElementID));
+
+                return (true, elements, "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Retrieve a list of RegElement objects from the project geodatabase, optionally filtered
+        /// by type, status, or presence indicators.  Silent errors.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="status"></param>
+        /// <param name="presence"></param>
+        /// <returns></returns>
+        public static async Task<(bool success, List<RegElement> elements, string message)> GetRegionalElements(ElementType? type, ElementStatus? status, ElementPresence? presence)
+        {
+            try
+            {
+                // Get the full Elements list
+                var tryget = await GetRegionalElements();
+
+                if (!tryget.success)
+                {
+                    return (false, null, tryget.message);
+                }
+
+                List<RegElement> elements = tryget.elements;
+
+                // Filter the list based on filter criteria:
+
+                // By Type
+                IEnumerable<RegElement> v = (type != null) ? elements.Where(e => e.ElementType == ((int)type)) : elements;
+
+                // By Status
+                v = (status != null) ? v.Where(e => e.ElementStatus == ((int)status)) : v;
+
+                // By Presence
+                v = (presence != null) ? v.Where(e => e.ElementPresence == ((int)presence)) : v;
+
+                // Sort by Element ID
+                IOrderedEnumerable<RegElement> u = v.OrderBy(e => e.ElementID);
+
+                return (true, u.ToList(), "success");
+            }
+            catch (Exception ex)
+            {
+                return (false, null, ex.Message);
+            }
+        }
+
+        // TODO: Uses old RegElement structure, consider removing
+        /*
         /// <summary>
         /// Retrieve a list of RegElement objects from the project geodatabase.  Silent errors.
         /// </summary>
@@ -3317,49 +4212,7 @@ namespace NCC.PRZTools
             }
         }
 
-        /// <summary>
-        /// Retrieve a list of RegElement objects from the project geodatabase, optionally filtered
-        /// by type, status, or presence indicators.  Silent errors.
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="status"></param>
-        /// <param name="presence"></param>
-        /// <returns></returns>
-        public static async Task<(bool success, List<RegElement> elements, string message)> GetRegionalElements(ElementType? type, ElementStatus? status, ElementPresence? presence)
-        {
-            try
-            {
-                // Get the full Elements list
-                var tryget = await GetRegionalElements();
 
-                if (!tryget.success)
-                {
-                    return (false, null, tryget.message);
-                }
-
-                List<RegElement> elements = tryget.elements;
-
-                // Filter the list based on filter criteria:
-
-                // By Type
-                IEnumerable<RegElement> v = (type != null) ? elements.Where(e => e.ElementType == ((int)type)) : elements;
-
-                // By Status
-                v = (status != null) ? v.Where(e => e.ElementStatus == ((int)status)) : v;
-
-                // By Presence
-                v = (presence != null) ? v.Where(e => e.ElementPresence == ((int)presence)) : v;
-
-                // Sort by Element ID
-                IOrderedEnumerable<RegElement> u = v.OrderBy(e => e.ElementID);
-
-                return (true, u.ToList(), "success");
-            }
-            catch (Exception ex)
-            {
-                return (false, null, ex.Message);
-            }
-        }
 
         /// <summary>
         /// Retrieve a list of regional element table names (e.g. r00042) from the project geodatabase.
@@ -3529,6 +4382,7 @@ namespace NCC.PRZTools
         //        return (false, null, ex.Message);
         //    }
         //}
+        */
 
         /// <summary>
         /// Retrieve a list of regional element feature class names (e.g. fc_r00042) from the
@@ -3995,7 +4849,7 @@ namespace NCC.PRZTools
                 }
 
                 // Read in element dictionary
-                var tryread = ReadBinary(element_filepath);
+                var tryread = await ReadBinary(element_filepath);
 
                 if (!tryread.success)
                 {
@@ -8072,7 +8926,7 @@ namespace NCC.PRZTools
 
         #region MISCELLANEOUS
 
-        public static (bool success, string message) WriteBinary(object obj, string path)
+        public static async Task<(bool success, string message)> WriteBinary(object obj, string path)
         {
             try
             {
@@ -8093,7 +8947,7 @@ namespace NCC.PRZTools
             }
         }
 
-        public static (bool success, object obj, string message) ReadBinary(string path)
+        public static async Task<(bool success, object obj, string message)> ReadBinary(string path)
         {
             try
             {
@@ -8148,7 +9002,8 @@ namespace NCC.PRZTools
             }
         }
 
-        public static (bool success, Dictionary<string, Dictionary<long, double>> attributes, string message) GetAllAttributes_Project()
+        // TODO: Remove?
+/*        public static (bool success, Dictionary<string, Dictionary<long, double>> attributes, string message) GetAllAttributes_Project()
         {
             try
             {
@@ -8164,7 +9019,7 @@ namespace NCC.PRZTools
                 // Read in each file
                 foreach(string element_path in element_paths)
                 {
-                    var tryread = ReadBinary(element_path);
+                    var tryread = await ReadBinary(element_path);
                     if (!tryread.success)
                     {
                         return (false, null, $"Could not read element binary file. Message: {tryread.message}");
@@ -8179,7 +9034,7 @@ namespace NCC.PRZTools
             {
                 return (false, null, $"Failed to get attributes. Message={ex.Message}");
             }
-        }
+        }*/
 
         public static string GetUser()
         {

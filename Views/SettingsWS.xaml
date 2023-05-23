@@ -174,43 +174,6 @@
                             Margin="5"
                             Width="210"
                             Style="{DynamicResource Esri_Button}"
-                            Command="{Binding CmdSelectRegionalFolder}">
-
-                            <StackPanel
-                                Orientation="Horizontal">
-
-                                <TextBlock
-                                    Margin="5"
-                                    Text="Specify Regional Data Folder" />
-
-                                <Image
-                                    Margin="5,0"
-                                    Source="pack://application:,,,/PRZTools;component/ImagesWPF/FolderGrey16.png"
-                                    Stretch="None" />
-
-                            </StackPanel>
-                        </Button>
-
-                        <TextBlock
-                            Margin="5"
-                            VerticalAlignment="Center"
-                            Style="{DynamicResource Esri_TextBlockRegular}"
-                            Foreground="{DynamicResource Esri_TextSelectionHighlightBrush}"
-                            Text="{Binding PrjSettings_Txt_RegionalFolderPath}" />
-
-                    </DockPanel>
-
-
-
-                    <DockPanel
-                        DockPanel.Dock="Top"
-                        LastChildFill="True">
-
-                        <Button 
-                            DockPanel.Dock="Left"
-                            Margin="5"
-                            Width="210"
-                            Style="{DynamicResource Esri_Button}"
                             Command="{Binding CmdSelectNationalDb}">
 
                             <StackPanel
@@ -240,6 +203,47 @@
                             Style="{DynamicResource Esri_TextBlockRegular}"
                             Foreground="{DynamicResource Esri_TextSelectionHighlightBrush}"
                             Text="{Binding PrjSettings_Txt_NationalDbPath}" />
+
+                    </DockPanel>
+                    
+                    <DockPanel
+                        DockPanel.Dock="Top"
+                        LastChildFill="True">
+
+                        <Button 
+                            DockPanel.Dock="Left"
+                            Margin="5"
+                            Width="210"
+                            Style="{DynamicResource Esri_Button}"
+                            Command="{Binding CmdSelectRegionalDb}">
+
+                            <StackPanel
+                                Orientation="Horizontal">
+
+                                <TextBlock
+                                    Margin="5"
+                                    Text="Specify Regional Database" />
+
+                                <Image
+                                    Margin="5,0"
+                                    Source="pack://application:,,,/PRZTools;component/ImagesWPF/Geodatabase16.png"
+                                    Stretch="None" />
+
+                            </StackPanel>
+                        </Button>
+
+                        <Image
+                            DockPanel.Dock="Left"
+                            Margin="3"
+                            Stretch="None"
+                            Source="{Binding RegDBInfo_Img_Status}"/>
+
+                        <TextBlock
+                            Margin="5"
+                            VerticalAlignment="Center"
+                            Style="{DynamicResource Esri_TextBlockRegular}"
+                            Foreground="{DynamicResource Esri_TextSelectionHighlightBrush}"
+                            Text="{Binding PrjSettings_Txt_RegionalDbPath}" />
 
                     </DockPanel>
 
